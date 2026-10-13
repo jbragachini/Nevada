@@ -18,9 +18,9 @@ Etapa 0: arquitectura, modelo de datos y pantallas. Nada de esto está construid
                  └──────┬───────────────┬───────────────┬───────┘
                         │               │               │
               ┌─────────▼──────┐ ┌──────▼──────┐ ┌──────▼────────┐
-              │ Supabase       │ │ Alias de MP │ │ Resend        │
-              │ • PostgreSQL   │ │ (transfer., │ │ (email        │
-              │ • Auth         │ │ sin API)    │ │ transaccional)│
+              │ Supabase       │ │ Mercado Pago│ │ Resend        │
+              │ • PostgreSQL   │ │ Checkout Pro│ │ (email        │
+              │ • Auth         │ │ + webhooks  │ │ transaccional)│
               │ • Storage      │ └─────────────┘ └───────────────┘
               │   privado      │
               │ • RLS          │
@@ -35,7 +35,7 @@ Decisiones clave:
 | Base de datos | Supabase PostgreSQL | Transacciones reales, RLS, funciones SQL atómicas |
 | Accesos | Supabase Auth (email + contraseña) | Contraseñas con hash, sesiones seguras; nunca guardamos contraseñas nosotros |
 | Permisos | Rol en tabla `profiles` + políticas RLS + chequeo en servidor | Doble barrera: aunque alguien manipule el navegador, la base rechaza |
-| Pagos | Único medio: transferencia al alias de Mercado Pago de Nevada + comprobante + aprobación manual del admin | Sin comisión. Las entradas se emiten solo cuando el admin confirma que el dinero ingresó a la cuenta (nunca solo por el comprobante) |
+| Pagos | Mercado Pago Checkout Pro + notificaciones (webhook) firmadas + aprobación del admin | El pedido pasa a *pagado* solo cuando MP lo confirma al servidor (nunca porque el cliente volvió a la página). Las entradas se liberan recién cuando el admin aprueba |
 | Comprobantes | Supabase Storage, bucket privado con URLs firmadas temporales | Nadie ve un comprobante sin permiso |
 | Email | Resend (alternativa: SMTP propio) | API simple, registro de entregas |
 | QR | Token aleatorio de 128 bits firmado (HMAC), no el ID de la entrada | No se puede adivinar ni fabricar un QR válido |
@@ -59,7 +59,7 @@ Decisiones clave:
 ### Estados (independientes entre sí)
 
 - **Pedido** (`orders.status`): `borrador` → `pendiente_pago` → `pagado` → `aprobado` → `emitido` · o `cancelado` / `vencido`
-- **Pago** (`payments.status`): `iniciado` → `pendiente_revision` | `acreditado` | `rechazado` | `reembolsado`
+- **Pago** (`payments.status`): `iniciado` → `pendiente` | `acreditado` | `rechazado` | `reembolsado` (lo define Mercado Pago)
 - **Entrada** (`tickets.status`): `valida` → `usada` · o `anulada`
 - **Email** (`email_log.status`): `en_cola` → `enviado` | `fallido`
 
@@ -71,7 +71,7 @@ Regla de coherencia: solo se crean filas en `tickets` cuando el pedido pasa a `a
 profiles            id (= auth.users.id), nombre, rol [admin|vendedor|puerta], activo, creado_en
 
 event_settings      id, nombre, fecha, lugar, direccion, ventas_abiertas,
-                    datos_bancarios (alias, cbu, titular, banco), actualizado_por, actualizado_en
+                    demora_revision_txt, actualizado_por, actualizado_en
 
 ticket_types        id, codigo [general|mas25], nombre, precio, cupo_total,
                     vendidas (calculado), activo, orden
@@ -83,15 +83,15 @@ commission_rules    id, ticket_type_id, seller_id (null = regla general),
 
 orders              id, numero (NEV-000123), comprador_nombre, comprador_email,
                     comprador_whatsapp, seller_id (null = venta directa),
-                    origen [web|promotor], metodo_pago [transferencia|efectivo_promotor],
+                    origen [web|promotor], metodo_pago [mercadopago|efectivo_promotor],
                     total, status, idempotency_key (único), creado_en
 
 order_items         id, order_id, ticket_type_id, cantidad, precio_unitario, subtotal
 
-payments            id, order_id, medio [transferencia|efectivo_promotor],
-                    referencia (nº de operación del comprobante), monto, status,
+payments            id, order_id, medio [mercadopago|efectivo_promotor],
+                    mp_preference_id, mp_payment_id (único), monto, status,
                     comprobante_path (storage privado), revisado_por, revisado_en,
-                    motivo_rechazo
+                    motivo_rechazo, raw_webhook (jsonb)
 
 tickets             id, order_id, order_item_id, ticket_type_id, qr_token (único),
                     titular_nombre, status, emitido_en, anulado_por, anulado_en
@@ -120,7 +120,7 @@ audit_log           id, actor_id, accion, entidad, entidad_id, antes (jsonb),
 | Riesgo | Control |
 |---|---|
 | Venta duplicada (doble click, reintento) | `orders.idempotency_key` único |
-| Mismo comprobante usado dos veces | `payments.referencia` única por medio + alerta al admin si se repite |
+| Notificación de MP repetida | `payments.mp_payment_id` único + procesamiento idempotente |
 | Doble emisión de QR | `emit_tickets()` con `SELECT … FOR UPDATE` y verificación previa |
 | Sobreventa | Reserva de cupo dentro de una transacción al confirmar el pedido |
 | Doble ingreso (dos celulares a la vez) | `checkins.ticket_id` único + `UPDATE tickets SET status='usada' WHERE status='valida'` atómico; el segundo recibe "YA UTILIZADA" |
@@ -132,7 +132,7 @@ audit_log           id, actor_id, accion, entidad, entidad_id, antes (jsonb),
 
 ### Públicas
 1. **/** — Venta: fondo azul noche con nieve sutil, tarjeta blanca central tipo ticket, logo Nevada, evento, fecha y lugar. Tipos de entrada con precio y selector de cantidad, total, datos del comprador, elección de medio de pago. Mensaje claro si las ventas están cerradas o agotadas.
-2. **/pedido/[numero]** — Estado del pedido: alias / CVU de Mercado Pago con botón copiar, total exacto, número de pedido para poner en el concepto, carga del comprobante y estado (pendiente de revisión / aprobado / rechazado).
+2. **/pedido/[numero]** — Estado del pedido al volver de Mercado Pago: «pago en verificación», «pagado, esperando aprobación», «aprobado: entradas enviadas» o «rechazado». El estado sale del servidor, no del regreso del cliente.
 3. **/entradas/[token]** — Descarga de las entradas (link privado enviado por mail).
 
 ### Vendedor (`/vendedor`)
@@ -145,7 +145,7 @@ audit_log           id, actor_id, accion, entidad, entidad_id, antes (jsonb),
 8. **Resumen** — vendidas por tipo, recaudado, pendientes de revisión, ranking de vendedores.
 9. **Ventas** — búsqueda por comprador / vendedor / número; filtros por tipo, fecha, método, estado; directa vs. promotor.
 10. **Detalle de pedido** — pagos, comprobante, aprobar / rechazar, emitir, reenviar, anular entradas.
-11. **Transferencias por revisar** — cola de comprobantes.
+11. **Pedidos por aprobar** — pedidos con pago acreditado por Mercado Pago (nº de operación, monto, medio) listos para aprobar y liberar los QR.
 12. **Vendedores** — alta, edición, activar / desactivar, autorización para cargar ventas, desempeño comparado.
 13. **Comisiones** — reglas por tipo de entrada (y por vendedor), generado / pagado / pendiente, registrar liquidación, historial.
 14. **Entradas / QR** — emitidas, usadas, anuladas.
@@ -166,7 +166,7 @@ audit_log           id, actor_id, accion, entidad, entidad_id, antes (jsonb),
 | 2 | Pedidos y base de datos | Migraciones SQL, RLS, creación real de pedidos |
 | 3 | Panel de vendedores | Login, métricas, historial, carga de ventas |
 | 4 | Admin y comisiones | Gestión completa, reglas, liquidaciones, auditoría |
-| 5 | Pagos | Transferencia al alias de MP: comprobante privado, cola de revisión, aprobar / rechazar |
+| 5 | Pagos | Checkout Pro con nº de pedido como referencia, webhook que marca el pago acreditado, cola de aprobación del admin |
 | 6 | Entradas por email | QR, PDF con diseño Nevada, envío, reenvío, descarga |
 | 7 | Escáner | Lectura con cámara y validación atómica en servidor |
 | 8 | Pruebas, seguridad, despliegue | Tests de reglas críticas, revisión de RLS, deploy en Vercel |
@@ -183,7 +183,7 @@ Nada de esto se simula: sin estas cuentas, esa parte queda marcada como "falta c
 | Cuenta de **Resend** + dominio | Enviar las entradas por mail | resend.com → verificar el dominio nevadaproducciones.com agregando registros DNS. Sin dominio propio solo se puede enviar a tu propio mail de prueba. |
 | Cuenta de **Vercel** | Publicar la página | vercel.com → conectar el repo de GitHub. |
 | Dominio **nevadaproducciones.com** | Dirección de la web (www.nevadaproducciones.com) y remitente de los mails | Comprarlo en un registrador de .com (Cloudflare, Namecheap, GoDaddy, Hostinger, etc.). Después: conectarlo en Vercel (Settings → Domains) y verificarlo en Resend. |
-| Alias y CVU de tu cuenta de **Mercado Pago** | Único medio de pago | App de Mercado Pago → Tu perfil → Alias y CVU. Se cargan desde el panel admin. |
+| Cuenta de **Mercado Pago** (vendedor) | Cobrar con Checkout Pro | mercadopago.com.ar/developers → Tus integraciones → Crear aplicación (Checkout Pro). Primero credenciales de **prueba**, después las de **producción**. También la clave secreta de webhooks. |
 | Precios, cupos, fecha y lugar | Configurar el evento | Se cargan desde el panel admin. |
 | Reglas de comisión | Calcular comisiones | Ej.: $X fijo por entrada General, $Y por +25, o un %. |
 | Imagen de referencia de Tokyo Club | Ajustar el diseño | No me llegó adjunta; si me la pasás la tomo como guía visual. |

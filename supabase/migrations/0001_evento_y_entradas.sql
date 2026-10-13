@@ -17,12 +17,8 @@ create table if not exists public.event_settings (
   ciudad          text        not null default 'Oncativo, Córdoba',
   ventas_abiertas boolean     not null default false,
   activo          boolean     not null default true,
-  -- Único medio de pago: transferencia a la cuenta de Mercado Pago de Nevada.
-  -- Se muestran al comprador después de confirmar su pedido.
-  pago_entidad    text        not null default 'Mercado Pago',
-  pago_titular    text,
-  pago_alias      text,
-  pago_cvu        text,
+  -- Pago: Mercado Pago Checkout Pro. El pedido se marca pagado solo cuando Mercado Pago
+  -- lo confirma al servidor; las entradas se liberan cuando el admin aprueba.
   -- Tiempo estimado de revisión que se le informa al comprador
   pago_demora_txt text        not null default 'dentro de las 24 horas',
   actualizado_en  timestamptz not null default now()

@@ -74,7 +74,7 @@ export function TicketForm({
     setTouchedSubmit(true);
     if (!validate()) return;
     // El envío real del pedido se conecta en la etapa 2 (registro de pedidos en la base)
-    // y la transferencia + comprobante en la etapa 5. No se simula nada acá.
+    // y el pago con Mercado Pago en la etapa 5. No se simula nada acá.
   }
 
   if (purchasable.length === 0) {
@@ -226,9 +226,9 @@ export function TicketForm({
         </h2>
         <ol className="flex flex-col gap-2 rounded-2xl border border-line bg-white px-4 py-4 text-[14px] text-ink">
           {[
-            "Confirmás tu pedido y te mostramos el alias de Mercado Pago de Nevada.",
-            "Transferís el total desde Mercado Pago o tu banco, con tu número de pedido en el concepto.",
-            `Subís el comprobante. Cuando confirmamos el pago te llegan las entradas por mail ${paymentDelay}.`,
+            "Tocás «Pagar con Mercado Pago» y pagás el total en Mercado Pago (tarjeta, débito o dinero en cuenta).",
+            "Revisamos que el pago de tu pedido esté acreditado.",
+            `Al aprobarlo te llegan las entradas con QR por mail ${paymentDelay}.`,
           ].map((t, i) => (
             <li key={i} className="flex gap-3">
               <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-deep text-xs font-bold text-white">
@@ -238,7 +238,6 @@ export function TicketForm({
             </li>
           ))}
         </ol>
-        <p className="text-xs text-muted">Transferencia sin recargo.</p>
       </section>
 
       {/* Total + continuar */}
@@ -256,7 +255,7 @@ export function TicketForm({
           disabled={!checkoutEnabled}
           className="h-13 rounded-xl bg-ice py-3.5 text-base font-extrabold uppercase tracking-[0.12em] text-night transition hover:bg-white disabled:cursor-not-allowed disabled:bg-[#5d7fa3] disabled:text-[#e3eefa]"
         >
-          Confirmar y ver alias
+          Pagar con Mercado Pago
         </button>
         {!checkoutEnabled && disabledReason && (
           <p className="text-center text-xs text-ice">{disabledReason}</p>
