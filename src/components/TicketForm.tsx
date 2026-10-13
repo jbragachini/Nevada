@@ -10,6 +10,8 @@ type Props = {
   /** false mientras no exista el registro real de pedidos (etapa 2) o sin base conectada. */
   checkoutEnabled: boolean;
   disabledReason?: string;
+  /** Texto de demora de revisión configurado en el evento, ej. "dentro de las 24 horas". */
+  paymentDelay?: string;
 };
 
 const buyerSchema = z.object({
@@ -24,12 +26,14 @@ const buyerSchema = z.object({
     .or(z.literal("")),
 });
 
-type PaymentMethod = "mercadopago" | "transferencia";
-
-export function TicketForm({ tickets, checkoutEnabled, disabledReason }: Props) {
+export function TicketForm({
+  tickets,
+  checkoutEnabled,
+  disabledReason,
+  paymentDelay = "dentro de las 24 horas",
+}: Props) {
   const [qty, setQty] = useState<Record<string, number>>({});
   const [buyer, setBuyer] = useState({ nombre: "", apellido: "", email: "", whatsapp: "" });
-  const [method, setMethod] = useState<PaymentMethod>("mercadopago");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touchedSubmit, setTouchedSubmit] = useState(false);
 
@@ -70,7 +74,7 @@ export function TicketForm({ tickets, checkoutEnabled, disabledReason }: Props) 
     setTouchedSubmit(true);
     if (!validate()) return;
     // El envío real del pedido se conecta en la etapa 2 (registro de pedidos en la base)
-    // y el cobro en la etapa 5 (Mercado Pago / transferencia). No se simula nada acá.
+    // y la transferencia + comprobante en la etapa 5. No se simula nada acá.
   }
 
   if (purchasable.length === 0) {
@@ -215,38 +219,27 @@ export function TicketForm({ tickets, checkoutEnabled, disabledReason }: Props) 
         </div>
       </fieldset>
 
-      {/* Medio de pago */}
-      <fieldset className="flex flex-col gap-3">
-        <legend className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-muted">
-          Medio de pago
-        </legend>
-        <div className="grid grid-cols-2 gap-3">
-          {(
-            [
-              { id: "mercadopago", label: "Mercado Pago", hint: "Tarjeta, débito o dinero en cuenta" },
-              { id: "transferencia", label: "Transferencia", hint: "Subís el comprobante" },
-            ] as const
-          ).map((m) => (
-            <label
-              key={m.id}
-              className={`cursor-pointer rounded-2xl border px-4 py-3 transition ${
-                method === m.id ? "border-blue bg-frost ring-2 ring-ice/50" : "border-line bg-white"
-              }`}
-            >
-              <input
-                type="radio"
-                name="metodo"
-                value={m.id}
-                checked={method === m.id}
-                onChange={() => setMethod(m.id)}
-                className="sr-only"
-              />
-              <span className="block font-bold text-ink">{m.label}</span>
-              <span className="block text-xs text-muted">{m.hint}</span>
-            </label>
+      {/* Cómo se paga */}
+      <section aria-labelledby="como-pagar" className="flex flex-col gap-3">
+        <h2 id="como-pagar" className="text-xs font-bold uppercase tracking-[0.18em] text-muted">
+          Cómo se paga
+        </h2>
+        <ol className="flex flex-col gap-2 rounded-2xl border border-line bg-white px-4 py-4 text-[14px] text-ink">
+          {[
+            "Confirmás tu pedido y te mostramos el alias de Mercado Pago de Nevada.",
+            "Transferís el total desde Mercado Pago o tu banco, con tu número de pedido en el concepto.",
+            `Subís el comprobante. Cuando confirmamos el pago te llegan las entradas por mail ${paymentDelay}.`,
+          ].map((t, i) => (
+            <li key={i} className="flex gap-3">
+              <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-deep text-xs font-bold text-white">
+                {i + 1}
+              </span>
+              <span>{t}</span>
+            </li>
           ))}
-        </div>
-      </fieldset>
+        </ol>
+        <p className="text-xs text-muted">Transferencia sin recargo.</p>
+      </section>
 
       {/* Total + continuar */}
       <div className="flex flex-col gap-3 rounded-2xl bg-night px-5 py-5 text-white">
@@ -263,7 +256,7 @@ export function TicketForm({ tickets, checkoutEnabled, disabledReason }: Props) 
           disabled={!checkoutEnabled}
           className="h-13 rounded-xl bg-ice py-3.5 text-base font-extrabold uppercase tracking-[0.12em] text-night transition hover:bg-white disabled:cursor-not-allowed disabled:bg-[#5d7fa3] disabled:text-[#e3eefa]"
         >
-          {method === "mercadopago" ? "Continuar al pago" : "Ver datos para transferir"}
+          Confirmar y ver alias
         </button>
         {!checkoutEnabled && disabledReason && (
           <p className="text-center text-xs text-ice">{disabledReason}</p>

@@ -14,7 +14,9 @@ La propuesta completa (arquitectura, modelo de datos, pantallas y etapas) está 
 | 2. Pedidos y base de datos | 🟡 Migración inicial lista (`evento` y `tipos de entrada`); falta registrar pedidos |
 | 3–8 | ⏳ Pendientes |
 
-El botón **Continuar al pago** está deshabilitado a propósito: el pedido real se conecta en la etapa 2 y el cobro en la etapa 5. No se simula ningún pago.
+**Medio de pago:** únicamente transferencia al alias de Mercado Pago de Nevada (sin comisión). El comprador sube el comprobante y las entradas se emiten cuando el administrador confirma que el dinero ingresó.
+
+El botón **Confirmar y ver alias** está deshabilitado a propósito hasta que se conecte el registro de pedidos (etapa 2). No se simula ningún pago.
 
 Sin Supabase configurado, la página muestra una **vista previa** con datos de ejemplo y un aviso visible.
 
@@ -46,4 +48,4 @@ npm run dev                  # http://localhost:3000
 
 ## Tecnología
 
-Next.js 15 · TypeScript · Tailwind CSS 4 · Supabase (PostgreSQL + Auth + Storage) · Mercado Pago Checkout Pro · Resend.
+Next.js 15 · TypeScript · Tailwind CSS 4 · Supabase (PostgreSQL + Auth + Storage) · Resend.

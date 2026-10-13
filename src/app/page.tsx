@@ -109,11 +109,12 @@ function Body({ sf }: { sf: Awaited<ReturnType<typeof getStorefront>> }) {
   return (
     <TicketForm
       tickets={sf.tickets}
+      paymentDelay={sf.event.demoraRevision}
       checkoutEnabled={false}
       disabledReason={
         sf.mode === "preview"
           ? "Compra deshabilitada en la vista previa."
-          : "La compra online se habilita en cuanto se conecten los pagos."
+          : "La compra se habilita en cuanto se conecte el registro de pedidos."
       }
     />
   );

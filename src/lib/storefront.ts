@@ -10,6 +10,7 @@ export type StorefrontEvent = {
   direccion: string | null;
   ciudad: string;
   ventasAbiertas: boolean;
+  demoraRevision: string;
 };
 
 export type StorefrontTicket = {
@@ -43,6 +44,7 @@ const PREVIEW: { event: StorefrontEvent; tickets: StorefrontTicket[] } = {
     direccion: null,
     ciudad: "Oncativo, Córdoba",
     ventasAbiertas: true,
+    demoraRevision: "dentro de las 24 horas",
   },
   tickets: [
     {
@@ -74,7 +76,7 @@ export async function getStorefront(): Promise<Storefront> {
 
   const { data: ev, error: evErr } = await supabase
     .from("event_settings")
-    .select("id,nombre,subtitulo,fecha_inicio,lugar,direccion,ciudad,ventas_abiertas")
+    .select("id,nombre,subtitulo,fecha_inicio,lugar,direccion,ciudad,ventas_abiertas,pago_demora_txt")
     .eq("activo", true)
     .maybeSingle();
 
@@ -100,6 +102,7 @@ export async function getStorefront(): Promise<Storefront> {
       direccion: ev.direccion,
       ciudad: ev.ciudad,
       ventasAbiertas: ev.ventas_abiertas,
+      demoraRevision: ev.pago_demora_txt,
     },
     tickets: (tt ?? []).map((t) => ({
       id: t.id,
