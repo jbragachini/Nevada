@@ -45,8 +45,15 @@ Decisiones clave:
 
 ### Roles
 
-| Rol | Puede | No puede |
-|---|---|---|
+| Rol | Acceso | Puede | No puede |
+|---|---|---|---|
+| Cliente (sin cuenta) | Público | Ver evento y precios, comprar, ver su pedido | Ver nada de otros compradores ni datos internos |
+| RRPP | Usuario y contraseña; pide acceso y el admin lo aprueba | Ver solo sus ventas, comisiones y lo que debe rendir; cargar ventas si está habilitado | Ver otros RRPP, aprobar pagos, emitir entradas por transferencia, tocar comisiones, usar la Puerta |
+| Admin | Usuario, contraseña y 2FA | Todo, incluido el **escáner de puerta** (exclusivo del admin) | — |
+
+Detalle completo en [`SEGURIDAD.md`](SEGURIDAD.md).
+
+---|---|---|
 | Cliente (sin cuenta) | Ver evento y precios, comprar, subir comprobante de su pedido | Ver nada de otros compradores ni datos internos |
 | Vendedor | Ver sus ventas y comisiones; cargar ventas externas si está autorizado | Ver ventas de otros, aprobar pagos, emitir entradas, tocar comisiones |
 | Puerta | Escanear QR y ver resultado | Ver ventas, comisiones o modificar nada |
@@ -68,7 +75,9 @@ Regla de coherencia: solo se crean filas en `tickets` cuando el pedido pasa a `a
 ### Tablas
 
 ```
-profiles            id (= auth.users.id), nombre, rol [admin|vendedor|puerta], activo, creado_en
+profiles            id (= auth.users.id), nombre, rol [admin|rrpp], activo, creado_en
+
+access_requests     id, nombre, usuario, whatsapp, estado [pendiente|aprobada|rechazada], revisado_por, creado_en
 
 event_settings      id, nombre, fecha, lugar, direccion, ventas_abiertas,
                     demora_revision_txt, actualizado_por, actualizado_en
@@ -83,7 +92,7 @@ commission_rules    id, ticket_type_id, seller_id (null = regla general),
 
 orders              id, numero (NEV-000123), comprador_nombre, comprador_email,
                     comprador_whatsapp, seller_id (null = venta directa),
-                    origen [web|promotor], metodo_pago [mercadopago|efectivo_promotor],
+                    origen [web|promotor], metodo_pago [mercadopago|efectivo_rrpp|transferencia_rrpp|transferencia_nevada],
                     total, status, idempotency_key (único), creado_en
 
 order_items         id, order_id, ticket_type_id, cantidad, precio_unitario, subtotal
@@ -146,9 +155,10 @@ audit_log           id, actor_id, accion, entidad, entidad_id, antes (jsonb),
 6. **Mis ventas** — Historial con estado de cada una.
 7. **Cargar venta** (solo si está autorizado) — el RRPP genera la venta él mismo: tipo y cantidad de entradas y **una persona por entrada** (nombre y apellido obligatorio, mail opcional; si falta, va al mail de la persona 1), y cómo le pagó:
    - **Efectivo:** las entradas con QR se generan **al instante** (sin aprobación) y el monto queda como **deuda a rendir** del RRPP.
+   - **Transferencia a la cuenta de Nevada:** queda **pendiente** hasta que el admin ve el ingreso; el RRPP **no rinde** ese dinero.
    - **Transferencia a nombre del RRPP:** queda **pendiente**; el admin la confirma con el RRPP por WhatsApp y al aprobarla se envían los QR.
 
-   El RRPP **siempre rinde el total** de lo que cobró a su nombre (efectivo y transferencias); la comisión se le paga después. Al rendir se registra por separado cuánto entregó en efectivo y cuánto en transferencias. Cada persona recibe su propia entrada con QR a su nombre. Queda **pendiente**; el admin la confirma con el RRPP por WhatsApp y al aprobarla se envían los QR al mail del comprador. Muestra la comisión que va a generar.
+   El RRPP **siempre rinde el total** de lo que cobró a su nombre (efectivo y transferencias a su cuenta); lo que se pagó directo a Nevada (compras en la web o transferencias a Nevada) no se rinde. la comisión se le paga después. Al rendir se registra por separado cuánto entregó en efectivo y cuánto en transferencias. Cada persona recibe su propia entrada con QR a su nombre. Queda **pendiente**; el admin la confirma con el RRPP por WhatsApp y al aprobarla se envían los QR al mail del comprador. Muestra la comisión que va a generar.
 
 ### Admin (`/admin`)
 8. **Resumen** — vendidas por tipo, recaudado, pendientes de revisión, ranking de vendedores.
@@ -159,11 +169,10 @@ audit_log           id, actor_id, accion, entidad, entidad_id, antes (jsonb),
 13. **Comisiones** — reglas por tipo de entrada (y por vendedor), generado / pagado / pendiente, registrar liquidación, historial.
 14. **Entradas / QR** — emitidas, usadas, anuladas.
 15. **Evento** — nombre, fecha, lugar, precios, cupos, abrir / cerrar ventas, datos bancarios.
-16. **Usuarios de puerta** y **Auditoría**.
+16. **RRPP y accesos** (pedidos de acceso para aprobar, usuarios, desactivar) y **Auditoría**.
 
-### Puerta (`/puerta`)
-17. **Login**
-18. **Escáner** — cámara a pantalla completa; resultado grande y en color: ENTRADA VÁLIDA (verde), YA UTILIZADA (naranja, con hora del primer ingreso), INVÁLIDA (rojo), ANULADA (gris). Contador de ingresos.
+### Puerta (`/admin/puerta`, solo admin)
+17. **Escáner** — cámara a pantalla completa; resultado grande y en color: ENTRADA VÁLIDA (verde), YA UTILIZADA (naranja, con hora del primer ingreso), INVÁLIDA (rojo), ANULADA (gris). Contador de ingresos.
 
 ---
 
