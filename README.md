@@ -2,6 +2,8 @@
 
 Plataforma de venta y control de entradas de **Nevada Producciones** — Navidad con Nevada 2026.
 
+Dirección: **https://www.nevadaproducciones.com**
+
 La propuesta completa (arquitectura, modelo de datos, pantallas y etapas) está en [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md).
 
 ## Estado
@@ -33,6 +35,14 @@ npm run dev                  # http://localhost:3000
    `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
 4. Para abrir las ventas mientras no exista el panel admin:
    `update event_settings set ventas_abiertas = true where activo;`
+
+## Dominio: www.nevadaproducciones.com (falta comprarlo y conectarlo)
+
+1. Comprar `nevadaproducciones.com` en un registrador de dominios .com.
+2. En Vercel → proyecto → **Settings → Domains**, agregar `www.nevadaproducciones.com` y `nevadaproducciones.com` (redirige a www).
+3. En el registrador, cargar los registros DNS que indica Vercel.
+4. En Resend → **Domains**, agregar `nevadaproducciones.com` y cargar sus registros DNS (SPF, DKIM) para que los mails salgan desde `entradas@nevadaproducciones.com` y no caigan en spam.
+5. En Vercel → **Environment Variables**: `NEXT_PUBLIC_SITE_URL=https://www.nevadaproducciones.com`.
 
 ## Tecnología
 

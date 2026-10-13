@@ -181,9 +181,9 @@ Nada de esto se simula: sin estas cuentas, esa parte queda marcada como "falta c
 |---|---|---|
 | Proyecto de **Supabase** | Base de datos, logins, comprobantes | supabase.com → New project. Me pasás la URL del proyecto, la `anon key` y la `service_role key` (esta última solo va al servidor). |
 | Cuenta de **Mercado Pago** (vendedor) | Cobrar con Checkout Pro | mercadopago.com.ar/developers → Tus integraciones → Crear aplicación (Checkout Pro). Primero credenciales de **prueba**, después las de **producción**. También la clave secreta de webhooks. |
-| Cuenta de **Resend** + dominio | Enviar las entradas por mail | resend.com → verificar un dominio (ej. nevadaproducciones.com.ar) agregando registros DNS. Sin dominio propio solo se puede enviar a tu propio mail de prueba. |
+| Cuenta de **Resend** + dominio | Enviar las entradas por mail | resend.com → verificar el dominio nevadaproducciones.com agregando registros DNS. Sin dominio propio solo se puede enviar a tu propio mail de prueba. |
 | Cuenta de **Vercel** | Publicar la página | vercel.com → conectar el repo de GitHub. |
-| **Dominio** (opcional pero recomendado) | Dirección propia y mails confiables | nic.ar o similar. |
+| Dominio **nevadaproducciones.com** | Dirección de la web (www.nevadaproducciones.com) y remitente de los mails | Comprarlo en un registrador de .com (Cloudflare, Namecheap, GoDaddy, Hostinger, etc.). Después: conectarlo en Vercel (Settings → Domains) y verificarlo en Resend. |
 | Datos bancarios | Mostrar para transferencias | Alias / CBU / titular / banco. |
 | Precios, cupos, fecha y lugar | Configurar el evento | Se cargan desde el panel admin. |
 | Reglas de comisión | Calcular comisiones | Ej.: $X fijo por entrada General, $Y por +25, o un %. |
