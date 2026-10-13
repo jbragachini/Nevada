@@ -81,7 +81,7 @@ sellers             id, profile_id, codigo_promotor (para link ?ref=), puede_car
 commission_rules    id, ticket_type_id, seller_id (null = regla general),
                     monto_fijo (pesos por entrada), vigente_desde
 
-orders              id, numero (NEV-000123), comprador_nombre, comprador_email,
+orders              id, numero (NEV-000123), retiene_comision (bool, ventas de RRPP), comprador_nombre, comprador_email,
                     comprador_whatsapp, seller_id (null = venta directa),
                     origen [web|promotor], metodo_pago [mercadopago|efectivo_promotor],
                     total, status, idempotency_key (único), creado_en
@@ -107,6 +107,8 @@ scan_attempts       id, qr_token_leido, resultado [valida|usada|invalida|anulada
 commissions         id, order_id, seller_id, monto, status [generada|liquidada|anulada]
 
 commission_payouts  id, seller_id, monto, fecha_pago, medio, nota, registrado_por
+
+seller_settlements  id, seller_id, monto, fecha, nota, registrado_por   (rendiciones: dinero que el RRPP entrega a Nevada)
 
 payout_items        payout_id, commission_id
 
@@ -141,7 +143,11 @@ audit_log           id, actor_id, accion, entidad, entidad_id, antes (jsonb),
 4. **Login**
 5. **Mi panel** — Entradas General, +25 y total vendidas; total en $; comisión generada / pagada / pendiente; link personal de venta.
 6. **Mis ventas** — Historial con estado de cada una.
-7. **Cargar venta** (solo si está autorizado) — el RRPP genera la venta él mismo: tipo y cantidad de entradas y **una persona por entrada** (nombre y apellido obligatorio, mail opcional; si falta, va al mail de la persona 1), y cómo le pagó (efectivo o transferencia). Cada persona recibe su propia entrada con QR a su nombre. Queda **pendiente**; el admin la confirma con el RRPP por WhatsApp y al aprobarla se envían los QR al mail del comprador. Muestra la comisión que va a generar.
+7. **Cargar venta** (solo si está autorizado) — el RRPP genera la venta él mismo: tipo y cantidad de entradas y **una persona por entrada** (nombre y apellido obligatorio, mail opcional; si falta, va al mail de la persona 1), y cómo le pagó:
+   - **Efectivo:** las entradas con QR se generan **al instante** (sin aprobación) y el monto queda como **deuda a rendir** del RRPP.
+   - **Transferencia:** queda **pendiente**; el admin la confirma con el RRPP por WhatsApp y al aprobarla se envían los QR.
+
+   En cada venta el RRPP elige si **rinde el total** (Nevada le paga la comisión después) o **se queda con su comisión** (queda cobrada y rinde el resto). Cada persona recibe su propia entrada con QR a su nombre. Queda **pendiente**; el admin la confirma con el RRPP por WhatsApp y al aprobarla se envían los QR al mail del comprador. Muestra la comisión que va a generar.
 
 ### Admin (`/admin`)
 8. **Resumen** — vendidas por tipo, recaudado, pendientes de revisión, ranking de vendedores.
