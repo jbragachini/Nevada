@@ -10,9 +10,9 @@ Etapa 0: arquitectura, modelo de datos y pantallas. Nada de esto está construid
                  ┌──────────────────────────────────────────────┐
   Navegador ───▶ │  Next.js 15 (App Router) + TypeScript        │
   (cliente,      │  desplegado en Vercel                        │
-  vendedor,      │                                              │
-  admin,         │  • Páginas públicas  /                       │
-  puerta)        │  • Paneles privados  /vendedor /admin /puerta│
+  RRPP,          │                                              │
+  admin)         │  • Páginas públicas  /                       │
+                 │  • Paneles privados  /rrpp  /admin (+puerta) │
                  │  • Server Actions y Route Handlers           │
                  │    (toda la lógica sensible corre acá)       │
                  └──────┬───────────────┬───────────────┬───────┘
@@ -52,12 +52,6 @@ Decisiones clave:
 | Admin | Usuario, contraseña y 2FA | Todo, incluido el **escáner de puerta** (exclusivo del admin) | — |
 
 Detalle completo en [`SEGURIDAD.md`](SEGURIDAD.md).
-
----|---|---|
-| Cliente (sin cuenta) | Ver evento y precios, comprar, subir comprobante de su pedido | Ver nada de otros compradores ni datos internos |
-| Vendedor | Ver sus ventas y comisiones; cargar ventas externas si está autorizado | Ver ventas de otros, aprobar pagos, emitir entradas, tocar comisiones |
-| Puerta | Escanear QR y ver resultado | Ver ventas, comisiones o modificar nada |
-| Admin | Todo | — |
 
 ---
 
