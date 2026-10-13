@@ -131,7 +131,7 @@ audit_log           id, actor_id, accion, entidad, entidad_id, antes (jsonb),
 ## 3. Pantallas
 
 ### Públicas
-1. **/** — Venta: fondo azul noche con nieve sutil, tarjeta blanca central tipo ticket, logo Nevada, evento, fecha y lugar. Tipos de entrada con precio y selector de cantidad, total, datos del comprador, elección de medio de pago. Mensaje claro si las ventas están cerradas o agotadas.
+1. **/** — Venta: fondo azul noche con nieve sutil, tarjeta blanca central tipo ticket, logo Nevada, evento, fecha y lugar. Tipos de entrada con precio y selector de cantidad, datos del comprador, **«¿Quién te vendió?» (RRPP, opcional)** para asignar la comisión, total y botón «Pagar con Mercado Pago». Cada RRPP tiene un link personal (`/?rrpp=codigo`) que lo deja preseleccionado. Mensaje claro si las ventas están cerradas o agotadas.
 2. **/pedido/[numero]** — Estado del pedido al volver de Mercado Pago: «pago en verificación», «pagado, esperando aprobación», «aprobado: entradas enviadas» o «rechazado». El estado sale del servidor, no del regreso del cliente.
 3. **/entradas/[token]** — Descarga de las entradas (link privado enviado por mail).
 

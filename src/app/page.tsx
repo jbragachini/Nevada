@@ -7,8 +7,13 @@ import { getStorefront } from "@/lib/storefront";
 // Precios, cupos y estado de ventas cambian desde el admin: no cachear.
 export const dynamic = "force-dynamic";
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ rrpp?: string }>;
+}) {
   const sf = await getStorefront();
+  const { rrpp } = await searchParams;
 
   return (
     <main className="relative flex min-h-dvh flex-col items-center px-4 pb-16 pt-8 sm:pt-14">
@@ -41,7 +46,7 @@ export default async function Home() {
         <div className="rounded-b-[28px] bg-white pb-6 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)]">
           <div className="ticket-perforation" />
           <div className="px-5 pt-7 sm:px-7">
-            <Body sf={sf} />
+            <Body sf={sf} rrppCode={rrpp} />
           </div>
         </div>
 
@@ -85,7 +90,13 @@ function EventHeader({
   );
 }
 
-function Body({ sf }: { sf: Awaited<ReturnType<typeof getStorefront>> }) {
+function Body({
+  sf,
+  rrppCode,
+}: {
+  sf: Awaited<ReturnType<typeof getStorefront>>;
+  rrppCode?: string;
+}) {
   if (sf.mode === "error") {
     return (
       <Notice title="NO PUDIMOS CARGAR EL EVENTO">
@@ -106,9 +117,15 @@ function Body({ sf }: { sf: Awaited<ReturnType<typeof getStorefront>> }) {
     );
   }
 
+  const initialRrppId = rrppCode
+    ? sf.rrpps.find((r) => r.codigo === rrppCode.toLowerCase())?.id
+    : undefined;
+
   return (
     <TicketForm
       tickets={sf.tickets}
+      rrpps={sf.rrpps}
+      initialRrppId={initialRrppId}
       checkoutEnabled={false}
       disabledReason={
         sf.mode === "preview"

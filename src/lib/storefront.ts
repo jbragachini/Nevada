@@ -24,9 +24,11 @@ export type StorefrontTicket = {
   enVenta: boolean;
 };
 
+export type StorefrontRrpp = { id: string; nombre: string; codigo: string };
+
 export type Storefront =
-  | { mode: "live"; event: StorefrontEvent; tickets: StorefrontTicket[] }
-  | { mode: "preview"; event: StorefrontEvent; tickets: StorefrontTicket[] }
+  | { mode: "live"; event: StorefrontEvent; tickets: StorefrontTicket[]; rrpps: StorefrontRrpp[] }
+  | { mode: "preview"; event: StorefrontEvent; tickets: StorefrontTicket[]; rrpps: StorefrontRrpp[] }
   | { mode: "no-event" }
   | { mode: "error"; message: string };
 
@@ -34,7 +36,7 @@ export type Storefront =
  * Datos de ejemplo SOLO para ver el diseño cuando Supabase no está configurado.
  * En este modo la compra queda deshabilitada y la página lo avisa.
  */
-const PREVIEW: { event: StorefrontEvent; tickets: StorefrontTicket[] } = {
+const PREVIEW: { event: StorefrontEvent; tickets: StorefrontTicket[]; rrpps: StorefrontRrpp[] } = {
   event: {
     id: "preview",
     nombre: "Navidad con Nevada 2026",
@@ -68,6 +70,10 @@ const PREVIEW: { event: StorefrontEvent; tickets: StorefrontTicket[] } = {
       enVenta: true,
     },
   ],
+  rrpps: [
+    { id: "preview-1", nombre: "RRPP de ejemplo 1", codigo: "ejemplo-1" },
+    { id: "preview-2", nombre: "RRPP de ejemplo 2", codigo: "ejemplo-2" },
+  ],
 };
 
 export async function getStorefront(): Promise<Storefront> {
@@ -90,6 +96,13 @@ export async function getStorefront(): Promise<Storefront> {
     .order("orden", { ascending: true });
 
   if (ttErr) return { mode: "error", message: ttErr.message };
+
+  const { data: rr, error: rrErr } = await supabase
+    .from("storefront_sellers")
+    .select("id,nombre_publico,codigo")
+    .order("nombre_publico", { ascending: true });
+
+  if (rrErr) return { mode: "error", message: rrErr.message };
 
   return {
     mode: "live",
@@ -114,5 +127,6 @@ export async function getStorefront(): Promise<Storefront> {
       maxPorCompra: t.max_por_compra,
       enVenta: t.en_venta,
     })),
+    rrpps: (rr ?? []).map((r) => ({ id: r.id, nombre: r.nombre_publico, codigo: r.codigo })),
   };
 }

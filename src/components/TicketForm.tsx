@@ -3,10 +3,14 @@
 import { useMemo, useState } from "react";
 import { z } from "zod";
 import { formatARS } from "@/lib/format";
-import type { StorefrontTicket } from "@/lib/storefront";
+import type { StorefrontRrpp, StorefrontTicket } from "@/lib/storefront";
 
 type Props = {
   tickets: StorefrontTicket[];
+  /** RRPP activos para elegir quién le vendió (opcional). */
+  rrpps: StorefrontRrpp[];
+  /** RRPP preseleccionado desde el link personal (?rrpp=codigo). */
+  initialRrppId?: string;
   /** false mientras no exista el registro real de pedidos (etapa 2) o sin base conectada. */
   checkoutEnabled: boolean;
   disabledReason?: string;
@@ -26,11 +30,14 @@ const buyerSchema = z.object({
 
 export function TicketForm({
   tickets,
+  rrpps,
+  initialRrppId,
   checkoutEnabled,
   disabledReason,
 }: Props) {
   const [qty, setQty] = useState<Record<string, number>>({});
   const [buyer, setBuyer] = useState({ nombre: "", apellido: "", email: "", whatsapp: "" });
+  const [rrppId, setRrppId] = useState<string>(initialRrppId ?? "");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touchedSubmit, setTouchedSubmit] = useState(false);
 
@@ -215,6 +222,46 @@ export function TicketForm({
           {errors.whatsapp && <p className="mt-1 text-xs text-danger">{errors.whatsapp}</p>}
         </div>
       </fieldset>
+
+      {/* RRPP (opcional) */}
+      {rrpps.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <label
+            htmlFor="rrpp"
+            className="text-xs font-bold uppercase tracking-[0.18em] text-muted"
+          >
+            ¿Quién te vendió? <span className="font-medium normal-case tracking-normal">(opcional)</span>
+          </label>
+          <div className="relative">
+            <select
+              id="rrpp"
+              value={rrppId}
+              onChange={(e) => setRrppId(e.target.value)}
+              className={`${field} appearance-none pr-10`}
+            >
+              <option value="">Nadie, compro directo</option>
+              {rrpps.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.nombre}
+                </option>
+              ))}
+            </select>
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </div>
+          <p className="text-xs text-muted">Si un RRPP te pasó la entrada, elegilo acá.</p>
+        </div>
+      )}
 
       {/* Total + continuar */}
       <div className="flex flex-col gap-3 rounded-2xl bg-night px-5 py-5 text-white">
