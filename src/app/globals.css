@@ -1,0 +1,91 @@
+@import "tailwindcss";
+
+:root {
+  /* Identidad Nevada */
+  --night: #061a36;   /* azul noche: fondo */
+  --deep: #0c3466;    /* azul profundo */
+  --blue: #1b5590;    /* azul medio */
+  --ice: #a9dcff;     /* celeste hielo */
+  --frost: #e8f5ff;   /* blanco escarcha */
+  --ink: #0b1a2e;     /* texto sobre blanco */
+  --muted: #4a5d75;   /* texto secundario sobre blanco (4.5:1+) */
+  --line: #d9e6f2;
+  --danger: #b42318;
+  --font-display: "Archivo Variable", "Arial Black", sans-serif;
+  --font-body: "Montserrat Variable", system-ui, sans-serif;
+}
+
+@theme inline {
+  --color-night: var(--night);
+  --color-deep: var(--deep);
+  --color-blue: var(--blue);
+  --color-ice: var(--ice);
+  --color-frost: var(--frost);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-danger: var(--danger);
+  --font-display: var(--font-display);
+  --font-sans: var(--font-body);
+}
+
+html {
+  background: var(--night);
+}
+
+body {
+  min-height: 100dvh;
+  color: var(--frost);
+  font-family: var(--font-body);
+  background:
+    radial-gradient(1200px 700px at 50% -10%, #12457f 0%, rgba(18, 69, 127, 0) 60%),
+    radial-gradient(900px 600px at 50% 110%, #0a2a52 0%, rgba(10, 42, 82, 0) 70%),
+    var(--night);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Títulos estilo club: Archivo ancho y pesado */
+.display {
+  font-family: var(--font-display);
+  font-stretch: 125%;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+/* Nieve */
+.snowfall .flake {
+  position: absolute;
+  top: -12px;
+  border-radius: 9999px;
+  background: #f2f9ff;
+  animation-name: nevada-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+@keyframes nevada-fall {
+  from { transform: translate3d(0, -12px, 0); }
+  to   { transform: translate3d(var(--drift), 105vh, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .snowfall .flake { animation: none; top: auto; }
+}
+
+/* Perforación del ticket */
+.ticket-perforation {
+  position: relative;
+  height: 0;
+  border-top: 2px dashed var(--line);
+  margin: 0 22px;
+}
+.ticket-perforation::before,
+.ticket-perforation::after {
+  content: "";
+  position: absolute;
+  top: -15px;
+  width: 28px;
+  height: 28px;
+  border-radius: 9999px;
+  background: var(--night);
+}
+.ticket-perforation::before { left: -38px; }
+.ticket-perforation::after  { right: -38px; }
