@@ -73,13 +73,16 @@ profiles            id (= auth.users.id), nombre, rol [admin|rrpp], activo, crea
 
 access_requests     id, nombre, usuario, whatsapp, estado [pendiente|aprobada|rechazada], revisado_por, creado_en
 
-events              id, nombre, subtitulo (DJ), fecha_inicio, lugar, direccion, ciudad,
-                    publicado (es el evento de la página de venta; solo uno a la vez), ventas_abiertas, imagen,
+events              id, nombre, subtitulo (DJ), fecha_inicio, lugar, direccion, ciudad, descripcion,
+                    publicado (es el evento de la página de venta; solo uno a la vez), ventas_abiertas,
+                    flyer_path (Storage público, imagen reducida),
                     creado_por, actualizado_por, actualizado_en
-                    (se pueden crear varios eventos; cada uno con sus entradas, precios, cupos y comisiones)
+                    (se pueden crear, editar y duplicar; se eliminan solo si no tienen ventas)
 
-ticket_types        id, event_id, codigo [general|mas25], nombre, precio, cupo_total,
-                    vendidas (calculado), activo, orden
+ticket_types        id, event_id, nombre, descripcion, precio, cupo_total, comision_rrpp,
+                    vendidas (calculado), en_venta, orden
+                    (tipos libres por evento: General, +25, VIP, preventa…; un tipo con ventas
+                    no se borra, se pasa a en_venta = false; el cupo no baja de lo vendido)
 
 sellers             id, profile_id, codigo_promotor (para link ?ref=), puede_cargar_ventas, activo
 
@@ -160,9 +163,9 @@ Página de ingreso para RRPP y admin, **sin link visible** desde la página púb
    El RRPP **siempre rinde el total** de lo que cobró a su nombre (efectivo y transferencias a su cuenta); lo que se pagó directo a Nevada (compras en la web o transferencias a Nevada) no se rinde. la comisión se le paga después. Al rendir se registra por separado cuánto entregó en efectivo y cuánto en transferencias. Cada persona recibe su propia entrada con QR a su nombre. Queda **pendiente**; el admin la confirma con el RRPP por WhatsApp y al aprobarla se envían los QR al mail del comprador. Muestra la comisión que va a generar.
 
 ### Admin (`/admin`)
-8. **Eventos** — lista de eventos, **crear** (queda como borrador), **editar** (nombre, DJ, fecha, lugar, precios, cupos, comisión por tipo), poner en la página de venta (reemplaza al evento anterior) o sacarlo, abrir / cerrar ventas. Todo el panel trabaja sobre el evento seleccionado arriba.
+8. **Eventos** — lista de eventos, **crear** (queda como borrador), **duplicar**, **editar** (nombre, DJ, fecha, lugar, ciudad, descripción, flyer; tipos de entrada: agregar, renombrar, precio, cupo, comisión, a la venta sí/no, eliminar si no tiene ventas), **eliminar** (solo sin ventas, con confirmación), poner en la página de venta (reemplaza al evento anterior) o sacarlo, abrir / cerrar ventas. Todo el panel trabaja sobre el evento seleccionado arriba.
    **Resumen** — vendidas por tipo, recaudado, pendientes de revisión, ranking de RRPP.
-9. **Ventas** — búsqueda por comprador / vendedor / número; filtros por tipo, fecha, método, estado; directa vs. promotor.
+9. **Ventas por vendedor** — filtro por vendedor (todos, sin RRPP o un RRPP), estado y alcance (este evento o todos) más búsqueda por comprador o número; resumen del filtro: pedidos, entradas aprobadas, vendido y comisión generada. Desde Comisiones y Usuarios, «Ver ventas» abre este filtro con el RRPP elegido.
 10. **Detalle de pedido** — pagos, comprobante, aprobar / rechazar, emitir, reenviar, anular entradas.
 11. **Pedidos por aprobar** — pedidos con pago acreditado por Mercado Pago (nº de operación, monto, medio) listos para aprobar y liberar los QR.
 12. **Vendedores** — alta, edición, activar / desactivar, autorización para cargar ventas, desempeño comparado.
