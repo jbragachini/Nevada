@@ -73,18 +73,20 @@ profiles            id (= auth.users.id), nombre, rol [admin|rrpp], activo, crea
 
 access_requests     id, nombre, usuario, whatsapp, estado [pendiente|aprobada|rechazada], revisado_por, creado_en
 
-event_settings      id, nombre, fecha, lugar, direccion, ventas_abiertas,
-                    demora_revision_txt, actualizado_por, actualizado_en
+events              id, nombre, subtitulo (DJ), fecha_inicio, lugar, direccion, ciudad,
+                    publicado (aparece en la página), ventas_abiertas, imagen,
+                    creado_por, actualizado_por, actualizado_en
+                    (se pueden crear varios eventos; cada uno con sus entradas, precios, cupos y comisiones)
 
-ticket_types        id, codigo [general|mas25], nombre, precio, cupo_total,
+ticket_types        id, event_id, codigo [general|mas25], nombre, precio, cupo_total,
                     vendidas (calculado), activo, orden
 
 sellers             id, profile_id, codigo_promotor (para link ?ref=), puede_cargar_ventas, activo
 
-commission_rules    id, ticket_type_id, seller_id (null = regla general),
+commission_rules    id, event_id, ticket_type_id, seller_id (null = regla general),
                     monto_fijo (pesos por entrada), vigente_desde
 
-orders              id, numero (NEV-000123), comprador_nombre, comprador_email,
+orders              id, event_id, numero (NEV-000123), comprador_nombre, comprador_email,
                     comprador_whatsapp, seller_id (null = venta directa),
                     origen [web|promotor], metodo_pago [mercadopago|efectivo_rrpp|transferencia_rrpp|transferencia_nevada],
                     total, status, idempotency_key (único), creado_en
@@ -139,12 +141,16 @@ audit_log           id, actor_id, accion, entidad, entidad_id, antes (jsonb),
 ## 3. Pantallas
 
 ### Públicas
-1. **/** — Venta: fondo azul noche con nieve sutil, tarjeta blanca central tipo ticket, logo Nevada, evento, fecha y lugar. Tipos de entrada con precio y selector de cantidad, datos del comprador, **«¿Quién te vendió?» (RRPP, opcional)** para asignar la comisión, total y botón «Pagar con Mercado Pago». Cada RRPP tiene un link personal (`/?rrpp=codigo`) que lo deja preseleccionado. Mensaje claro si las ventas están cerradas o agotadas.
+0. **/** — Cartelera: si hay más de un evento publicado, se listan como tarjetas (fecha, lugar, «desde $X», estado de venta). Con un solo evento se va directo a su venta.
+1. **/evento/[slug]** — Venta: fondo azul noche con nieve sutil, tarjeta blanca central tipo ticket, logo Nevada, evento, fecha y lugar. Tipos de entrada con precio y selector de cantidad, datos del comprador, **«¿Quién te vendió?» (RRPP, opcional)** para asignar la comisión, total y botón «Pagar con Mercado Pago». Cada RRPP tiene un link personal (`/?rrpp=codigo`) que lo deja preseleccionado. Mensaje claro si las ventas están cerradas o agotadas.
 2. **/pedido/[numero]** — Estado del pedido al volver de Mercado Pago: «pago en verificación», «pagado, esperando aprobación», «aprobado: entradas enviadas» o «rechazado». El estado sale del servidor, no del regreso del cliente.
 3. **/entradas/[token]** — Descarga de las entradas (link privado enviado por mail).
 
-### Vendedor (`/vendedor`)
-4. **Login**
+### Ingreso (`/ingresar`)
+Página de ingreso para RRPP y admin, **sin link visible** desde la página pública: el comprador solo ve la venta. Desde acá el RRPP también pide su acceso.
+
+### RRPP (`/rrpp`)
+4. **Ingreso** (en `/ingresar`)
 5. **Mi panel** — Entradas General, +25 y total vendidas; total en $; comisión generada / pagada / pendiente; link personal de venta.
 6. **Mis ventas** — Historial con estado de cada una.
 7. **Cargar venta** (solo si está autorizado) — el RRPP genera la venta él mismo: tipo y cantidad de entradas y **una persona por entrada** (nombre y apellido obligatorio, mail opcional; si falta, va al mail de la persona 1), y cómo le pagó:
@@ -155,7 +161,8 @@ audit_log           id, actor_id, accion, entidad, entidad_id, antes (jsonb),
    El RRPP **siempre rinde el total** de lo que cobró a su nombre (efectivo y transferencias a su cuenta); lo que se pagó directo a Nevada (compras en la web o transferencias a Nevada) no se rinde. la comisión se le paga después. Al rendir se registra por separado cuánto entregó en efectivo y cuánto en transferencias. Cada persona recibe su propia entrada con QR a su nombre. Queda **pendiente**; el admin la confirma con el RRPP por WhatsApp y al aprobarla se envían los QR al mail del comprador. Muestra la comisión que va a generar.
 
 ### Admin (`/admin`)
-8. **Resumen** — vendidas por tipo, recaudado, pendientes de revisión, ranking de vendedores.
+8. **Eventos** — lista de eventos, **crear** (queda como borrador), **editar** (nombre, DJ, fecha, lugar, precios, cupos, comisión por tipo), publicar / despublicar, abrir / cerrar ventas. Todo el panel trabaja sobre el evento seleccionado arriba.
+   **Resumen** — vendidas por tipo, recaudado, pendientes de revisión, ranking de RRPP.
 9. **Ventas** — búsqueda por comprador / vendedor / número; filtros por tipo, fecha, método, estado; directa vs. promotor.
 10. **Detalle de pedido** — pagos, comprobante, aprobar / rechazar, emitir, reenviar, anular entradas.
 11. **Pedidos por aprobar** — pedidos con pago acreditado por Mercado Pago (nº de operación, monto, medio) listos para aprobar y liberar los QR.
