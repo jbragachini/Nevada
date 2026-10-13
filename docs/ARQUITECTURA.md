@@ -74,7 +74,7 @@ profiles            id (= auth.users.id), nombre, rol [admin|rrpp], activo, crea
 access_requests     id, nombre, usuario, whatsapp, estado [pendiente|aprobada|rechazada], revisado_por, creado_en
 
 events              id, nombre, subtitulo (DJ), fecha_inicio, lugar, direccion, ciudad,
-                    publicado (aparece en la página), ventas_abiertas, imagen,
+                    publicado (es el evento de la página de venta; solo uno a la vez), ventas_abiertas, imagen,
                     creado_por, actualizado_por, actualizado_en
                     (se pueden crear varios eventos; cada uno con sus entradas, precios, cupos y comisiones)
 
@@ -141,9 +141,8 @@ audit_log           id, actor_id, accion, entidad, entidad_id, antes (jsonb),
 ## 3. Pantallas
 
 ### Públicas
-0. **/** — Cartelera: si hay más de un evento publicado, se listan como tarjetas (fecha, lugar, «desde $X», estado de venta). Con un solo evento se va directo a su venta.
-1. **/evento/[slug]** — Venta: fondo azul noche con nieve sutil, tarjeta blanca central tipo ticket, logo Nevada, evento, fecha y lugar. Tipos de entrada con precio y selector de cantidad, datos del comprador, **«¿Quién te vendió?» (RRPP, opcional)** para asignar la comisión, total y botón «Pagar con Mercado Pago». Cada RRPP tiene un link personal (`/?rrpp=codigo`) que lo deja preseleccionado. Mensaje claro si las ventas están cerradas o agotadas.
-2. **/pedido/[numero]** — Estado del pedido al volver de Mercado Pago: «pago en verificación», «pagado, esperando aprobación», «aprobado: entradas enviadas» o «rechazado». El estado sale del servidor, no del regreso del cliente.
+1. **/** — Venta del **único evento que está en la página** (el admin elige cuál; poner uno reemplaza al anterior): fondo azul noche con nieve sutil, tarjeta blanca central tipo ticket, logo Nevada, evento, fecha y lugar. Tipos de entrada con precio y selector de cantidad, datos del comprador, **«¿Quién te vendió?» (RRPP, opcional)** para asignar la comisión, total y botón «Pagar con Mercado Pago». Cada RRPP tiene un link personal (`/?rrpp=codigo`) que lo deja preseleccionado. Mensaje claro si las ventas están cerradas o agotadas.
+2. **/pedido/[token privado]** — Seguimiento del comprador, sin cuenta: al pagar ve la confirmación con su número de pedido, y el mail trae este link privado para ver el estado y descargar las entradas cuando quiera. Estados: «pago en verificación», «pagado, esperando aprobación», «aprobado: entradas enviadas» o «rechazado». El estado sale del servidor, no del regreso del cliente.
 3. **/entradas/[token]** — Descarga de las entradas (link privado enviado por mail).
 
 ### Ingreso (`/ingresar`)
@@ -161,7 +160,7 @@ Página de ingreso para RRPP y admin, **sin link visible** desde la página púb
    El RRPP **siempre rinde el total** de lo que cobró a su nombre (efectivo y transferencias a su cuenta); lo que se pagó directo a Nevada (compras en la web o transferencias a Nevada) no se rinde. la comisión se le paga después. Al rendir se registra por separado cuánto entregó en efectivo y cuánto en transferencias. Cada persona recibe su propia entrada con QR a su nombre. Queda **pendiente**; el admin la confirma con el RRPP por WhatsApp y al aprobarla se envían los QR al mail del comprador. Muestra la comisión que va a generar.
 
 ### Admin (`/admin`)
-8. **Eventos** — lista de eventos, **crear** (queda como borrador), **editar** (nombre, DJ, fecha, lugar, precios, cupos, comisión por tipo), publicar / despublicar, abrir / cerrar ventas. Todo el panel trabaja sobre el evento seleccionado arriba.
+8. **Eventos** — lista de eventos, **crear** (queda como borrador), **editar** (nombre, DJ, fecha, lugar, precios, cupos, comisión por tipo), poner en la página de venta (reemplaza al evento anterior) o sacarlo, abrir / cerrar ventas. Todo el panel trabaja sobre el evento seleccionado arriba.
    **Resumen** — vendidas por tipo, recaudado, pendientes de revisión, ranking de RRPP.
 9. **Ventas** — búsqueda por comprador / vendedor / número; filtros por tipo, fecha, método, estado; directa vs. promotor.
 10. **Detalle de pedido** — pagos, comprobante, aprobar / rechazar, emitir, reenviar, anular entradas.
