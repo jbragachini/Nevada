@@ -79,7 +79,7 @@ ticket_types        id, codigo [general|mas25], nombre, precio, cupo_total,
 sellers             id, profile_id, codigo_promotor (para link ?ref=), puede_cargar_ventas, activo
 
 commission_rules    id, ticket_type_id, seller_id (null = regla general),
-                    tipo [fijo|porcentaje], valor, vigente_desde
+                    monto_fijo (pesos por entrada), vigente_desde
 
 orders              id, numero (NEV-000123), comprador_nombre, comprador_email,
                     comprador_whatsapp, seller_id (null = venta directa),
@@ -139,7 +139,7 @@ audit_log           id, actor_id, accion, entidad, entidad_id, antes (jsonb),
 4. **Login**
 5. **Mi panel** — Entradas General, +25 y total vendidas; total en $; comisión generada / pagada / pendiente; link personal de venta.
 6. **Mis ventas** — Historial con estado de cada una.
-7. **Cargar venta** (solo si está autorizado) — comprador, tipo, cantidad, método de pago. Queda pendiente de aprobación del admin.
+7. **Cargar venta** (solo si está autorizado) — el RRPP genera la venta él mismo: comprador (nombre, mail, WhatsApp), tipo y cantidad de entradas, cómo le pagó (efectivo o transferencia). Queda **pendiente**; el admin la confirma con el RRPP por WhatsApp y al aprobarla se envían los QR al mail del comprador. Muestra la comisión que va a generar.
 
 ### Admin (`/admin`)
 8. **Resumen** — vendidas por tipo, recaudado, pendientes de revisión, ranking de vendedores.
@@ -185,7 +185,7 @@ Nada de esto se simula: sin estas cuentas, esa parte queda marcada como "falta c
 | Dominio **nevadaproducciones.com** | Dirección de la web (www.nevadaproducciones.com) y remitente de los mails | Comprarlo en un registrador de .com (Cloudflare, Namecheap, GoDaddy, Hostinger, etc.). Después: conectarlo en Vercel (Settings → Domains) y verificarlo en Resend. |
 | Cuenta de **Mercado Pago** (vendedor) | Cobrar con Checkout Pro | mercadopago.com.ar/developers → Tus integraciones → Crear aplicación (Checkout Pro). Primero credenciales de **prueba**, después las de **producción**. También la clave secreta de webhooks. |
 | Precios, cupos, fecha y lugar | Configurar el evento | Se cargan desde el panel admin. |
-| Reglas de comisión | Calcular comisiones | Ej.: $X fijo por entrada General, $Y por +25, o un %. |
+| Reglas de comisión | Calcular comisiones | **Monto fijo por entrada**: $X por General y $Y por +25 (se configura desde el admin). |
 | Imagen de referencia de Tokyo Club | Ajustar el diseño | No me llegó adjunta; si me la pasás la tomo como guía visual. |
 
 Las claves van en variables de entorno (`.env.local` en desarrollo, panel de Vercel en producción) y nunca se suben al repo.
