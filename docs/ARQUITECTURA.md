@@ -88,13 +88,15 @@ orders              id, numero (NEV-000123), comprador_nombre, comprador_email,
 
 order_items         id, order_id, ticket_type_id, cantidad, precio_unitario, subtotal
 
+order_attendees     id, order_id, order_item_id, nombre, email (ventas de RRPP: una fila por persona)
+
 payments            id, order_id, medio [mercadopago|efectivo_promotor],
                     mp_preference_id, mp_payment_id (único), monto, status,
                     comprobante_path (storage privado), revisado_por, revisado_en,
                     motivo_rechazo, raw_webhook (jsonb)
 
 tickets             id, order_id, order_item_id, ticket_type_id, qr_token (único),
-                    titular_nombre, status, emitido_en, anulado_por, anulado_en
+                    titular_nombre, titular_email, status, emitido_en, anulado_por, anulado_en
 
 checkins            id, ticket_id (único → impide doble ingreso), escaneado_por,
                     escaneado_en, dispositivo
@@ -139,7 +141,7 @@ audit_log           id, actor_id, accion, entidad, entidad_id, antes (jsonb),
 4. **Login**
 5. **Mi panel** — Entradas General, +25 y total vendidas; total en $; comisión generada / pagada / pendiente; link personal de venta.
 6. **Mis ventas** — Historial con estado de cada una.
-7. **Cargar venta** (solo si está autorizado) — el RRPP genera la venta él mismo: comprador (nombre, mail, WhatsApp), tipo y cantidad de entradas, cómo le pagó (efectivo o transferencia). Queda **pendiente**; el admin la confirma con el RRPP por WhatsApp y al aprobarla se envían los QR al mail del comprador. Muestra la comisión que va a generar.
+7. **Cargar venta** (solo si está autorizado) — el RRPP genera la venta él mismo: tipo y cantidad de entradas y **una persona por entrada** (nombre y apellido obligatorio, mail opcional; si falta, va al mail de la persona 1), y cómo le pagó (efectivo o transferencia). Cada persona recibe su propia entrada con QR a su nombre. Queda **pendiente**; el admin la confirma con el RRPP por WhatsApp y al aprobarla se envían los QR al mail del comprador. Muestra la comisión que va a generar.
 
 ### Admin (`/admin`)
 8. **Resumen** — vendidas por tipo, recaudado, pendientes de revisión, ranking de vendedores.
