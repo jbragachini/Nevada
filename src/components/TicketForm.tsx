@@ -10,8 +10,6 @@ type Props = {
   /** false mientras no exista el registro real de pedidos (etapa 2) o sin base conectada. */
   checkoutEnabled: boolean;
   disabledReason?: string;
-  /** Texto de demora de revisión configurado en el evento, ej. "dentro de las 24 horas". */
-  paymentDelay?: string;
 };
 
 const buyerSchema = z.object({
@@ -30,7 +28,6 @@ export function TicketForm({
   tickets,
   checkoutEnabled,
   disabledReason,
-  paymentDelay = "dentro de las 24 horas",
 }: Props) {
   const [qty, setQty] = useState<Record<string, number>>({});
   const [buyer, setBuyer] = useState({ nombre: "", apellido: "", email: "", whatsapp: "" });
@@ -218,27 +215,6 @@ export function TicketForm({
           {errors.whatsapp && <p className="mt-1 text-xs text-danger">{errors.whatsapp}</p>}
         </div>
       </fieldset>
-
-      {/* Cómo se paga */}
-      <section aria-labelledby="como-pagar" className="flex flex-col gap-3">
-        <h2 id="como-pagar" className="text-xs font-bold uppercase tracking-[0.18em] text-muted">
-          Cómo se paga
-        </h2>
-        <ol className="flex flex-col gap-2 rounded-2xl border border-line bg-white px-4 py-4 text-[14px] text-ink">
-          {[
-            "Tocás «Pagar con Mercado Pago» y pagás el total en Mercado Pago (tarjeta, débito o dinero en cuenta).",
-            "Revisamos que el pago de tu pedido esté acreditado.",
-            `Al aprobarlo te llegan las entradas con QR por mail ${paymentDelay}.`,
-          ].map((t, i) => (
-            <li key={i} className="flex gap-3">
-              <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-deep text-xs font-bold text-white">
-                {i + 1}
-              </span>
-              <span>{t}</span>
-            </li>
-          ))}
-        </ol>
-      </section>
 
       {/* Total + continuar */}
       <div className="flex flex-col gap-3 rounded-2xl bg-night px-5 py-5 text-white">

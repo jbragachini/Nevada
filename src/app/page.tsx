@@ -109,7 +109,6 @@ function Body({ sf }: { sf: Awaited<ReturnType<typeof getStorefront>> }) {
   return (
     <TicketForm
       tickets={sf.tickets}
-      paymentDelay={sf.event.demoraRevision}
       checkoutEnabled={false}
       disabledReason={
         sf.mode === "preview"
