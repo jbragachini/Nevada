@@ -7,7 +7,10 @@ export function StaffNav({ links }: { links: { href: string; label: string }[] }
   const path = usePathname();
   if (links.length < 2) return null;
   return (
-    <nav aria-label="Secciones" className="order-last flex w-full gap-1.5 overflow-x-auto sm:order-none sm:w-auto">
+    <nav
+      aria-label="Secciones"
+      className="order-last -mx-1 flex w-full min-w-0 gap-1.5 overflow-x-auto px-1 py-0.5 [scrollbar-width:none] lg:order-none lg:w-auto lg:flex-1"
+    >
       {links.map((l) => {
         const actual = path === l.href;
         return (

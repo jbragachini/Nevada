@@ -22,6 +22,7 @@ export type Pedido = {
   evento: { nombre: string; subtitulo: string | null; fechaInicio: string; lugar: string; ciudad: string };
   items: { nombre: string; cantidad: number; precioUnitario: number; subtotal: number }[];
   entradasEmitidas: number;
+  entradas: { titular: string; tipo: string; qrToken: string; status: "valida" | "usada" | "anulada" }[];
 };
 
 type Row = {
@@ -35,6 +36,7 @@ type Row = {
   evento: { nombre: string; subtitulo: string | null; fecha_inicio: string; lugar: string; ciudad: string };
   items: { nombre: string; cantidad: number; precio_unitario: number; subtotal: number }[];
   entradas_emitidas: number;
+  entradas: { titular: string; tipo: string; qr_token: string; status: "valida" | "usada" | "anulada" }[];
 };
 
 /** Pedido del link privado. null si el token no es válido o no existe. */
@@ -70,5 +72,6 @@ export async function getPedido(token: string): Promise<Pedido | null> {
       subtotal: i.subtotal,
     })),
     entradasEmitidas: r.entradas_emitidas,
+    entradas: (r.entradas ?? []).map((e) => ({ titular: e.titular, tipo: e.tipo, qrToken: e.qr_token, status: e.status })),
   };
 }

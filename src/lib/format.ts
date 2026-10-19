@@ -44,3 +44,33 @@ export function formatHora(iso: string): string {
     timeZone: TZ,
   }).format(new Date(iso));
 }
+
+/** Fecha y hora de Córdoba para un <input type="datetime-local">: «2026-12-24T23:59». */
+export function aInputFecha(iso: string): string {
+  const p = Object.fromEntries(
+    new Intl.DateTimeFormat("en-CA", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      timeZone: TZ,
+    })
+      .formatToParts(new Date(iso))
+      .map((x) => [x.type, x.value]),
+  );
+  return `${p.year}-${p.month}-${p.day}T${p.hour === "24" ? "00" : p.hour}:${p.minute}`;
+}
+
+/** Fecha corta con hora: «24/12 23:59». */
+export function formatFechaHora(iso: string): string {
+  return new Intl.DateTimeFormat("es-AR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: TZ,
+  }).format(new Date(iso));
+}

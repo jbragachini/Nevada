@@ -13,6 +13,9 @@
 -- Quién es el usuario actual
 -- security definer: leen profiles/sellers sin depender de sus propias políticas.
 -- ─────────────────────────────────────────────────────────────
+
+-- Admin con la doble verificación hecha en esta sesión (aal2): sin el código del celular, una
+-- contraseña robada no alcanza para nada de admin.
 create or replace function public.es_admin()
 returns boolean
 language sql
@@ -20,10 +23,11 @@ stable
 security definer
 set search_path = ''
 as $$
-  select exists (
-    select 1 from public.profiles p
-    where p.id = auth.uid() and p.rol = 'admin' and p.activo
-  );
+  select coalesce(auth.jwt() ->> 'aal', 'aal1') = 'aal2'
+     and exists (
+       select 1 from public.profiles p
+       where p.id = auth.uid() and p.rol = 'admin' and p.activo
+     );
 $$;
 
 create or replace function public.mi_seller_id()

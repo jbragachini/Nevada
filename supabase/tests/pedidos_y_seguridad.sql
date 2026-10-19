@@ -14,7 +14,7 @@ declare
   v_err text;
 begin
   perform set_config('request.jwt.claims',
-                     coalesce(jsonb_build_object('sub', sub)::text, '{}'), true);
+                     coalesce(jsonb_build_object('sub', sub, 'aal', 'aal2')::text, '{}'), true);
   perform set_config('role', rol, true);
   begin
     execute sql;
@@ -44,7 +44,7 @@ declare
   n bigint;
 begin
   perform set_config('request.jwt.claims',
-                     coalesce(jsonb_build_object('sub', sub)::text, '{}'), true);
+                     coalesce(jsonb_build_object('sub', sub, 'aal', 'aal2')::text, '{}'), true);
   perform set_config('role', rol, true);
   execute 'select count(*) from (' || sql || ') q' into n;
   perform set_config('role', 'postgres', true);
@@ -306,17 +306,21 @@ select pruebas.igual('el RRPP no puede cambiar precios',
   pruebas.correr_y_ver($$update public.ticket_types set precio = 1$$, 'authenticated',
                  'a0000000-0000-0000-0000-00000000000b',
                  $$select min(precio) from public.ticket_types where nombre = 'Entrada General'$$),
-  'ok:15000');
+  '42501:15000');
 select pruebas.igual('el RRPP no puede hacerse admin',
   pruebas.correr_y_ver($$update public.profiles set rol = 'admin' where id = auth.uid()$$, 'authenticated',
                  'a0000000-0000-0000-0000-00000000000b',
                  $$select rol from public.profiles where usuario = 'lucas'$$),
-  'ok:rrpp');
+  '42501:rrpp');
 select pruebas.igual('ni el admin puede escribir pedidos directo desde el navegador',
   pruebas.correr($$update public.orders set total = 1$$, 'authenticated',
                  'a0000000-0000-0000-0000-00000000000a'), '42501');
-select pruebas.igual('el admin sí puede editar eventos',
-  pruebas.correr_y_ver($$update public.events set lugar = 'Club Nevada' where publicado$$, 'authenticated',
+select pruebas.igual('el admin no escribe eventos directo (pasa por funciones con auditoría)',
+  pruebas.correr($$update public.events set lugar = 'Club Nevada' where publicado$$, 'authenticated',
+                 'a0000000-0000-0000-0000-00000000000a'), '42501');
+select pruebas.igual('el admin edita eventos con su función',
+  pruebas.correr_y_ver(format($$select public.admin_editar_evento(%L, '{"lugar": "Club Nevada"}')$$,
+                              (select id from public.events where publicado)), 'authenticated',
                  'a0000000-0000-0000-0000-00000000000a',
                  $$select lugar from public.events where publicado$$),
   'ok:Club Nevada');

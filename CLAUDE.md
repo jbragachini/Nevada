@@ -146,12 +146,18 @@ Next.js 15 (App Router) · TypeScript · Tailwind 4 · Supabase (Postgres + Auth
   - QR: `NEV1.<qr_token>.<HMAC>` con `QR_SIGNING_SECRET` (`src/lib/qr.ts`); la Puerta tiene que verificar la firma.
   - Pruebas: `supabase/tests/invitaciones_y_rrpp.sql` (114 controles en total con `scripts/probar-base.sh`). Probado de punta a punta con Supabase Auth (GoTrue) y PostgREST locales y navegador real.
 
+- **Etapa 4, admin:**
+  - Migración `0008_admin.sql`: todo cambio del admin pasa por funciones `admin_*` (verifican `es_admin()`, aplican las reglas y escriben `audit_log`); el navegador ya no escribe directo en `events`, `ticket_types`, `sellers`, `profiles` ni `access_requests`. Resúmenes: `admin_resumen_evento()`, `admin_saldos_rrpp()`.
+  - **Doble verificación obligatoria del admin:** `es_admin()` exige `aal2` en el JWT. `/ingresar/verificacion` da de alta la app (TOTP de Supabase Auth) o pide el código; `requireAdmin()` la exige en cada página.
+  - Panel `/admin` con selector de evento (cookie): Resumen, Eventos (crear, editar datos, acceso y palabra clave, «¿Quién te vendió?», tipos libres, duplicar, eliminar sin ventas, poner en la página, abrir/cerrar ventas), Por aprobar (emite los QR), Ventas por vendedor (filtros), Comisiones y rendiciones, RRPP y accesos, Invitados, Entradas (anular) y Auditoría. Avisos de confirmación abajo de la pantalla.
+  - El comprador ve sus entradas con QR en `/pedido/[token]` cuando el pedido está aprobado (el mail llega en la etapa 6).
+  - Pruebas: `supabase/tests/admin.sql` (159 controles en total) y pruebas con navegador de todo el panel.
+
 **Siguiente, en orden** (ver la tabla de etapas en ARQUITECTURA):
-1. **Etapa 4:** admin completo (eventos, por aprobar, ventas por vendedor, comisiones y rendiciones, accesos, auditoría), más: acceso público / lista / palabra clave y «¿Quién te vendió?» por evento, lista de invitados de Nevada y de todos los RRPP, topes por RRPP, aprobar accesos creando la ficha de vendedor y aprobar pedidos llamando a `emitir_entradas()`.
-2. **Etapa 5:** Mercado Pago Checkout Pro y webhook. La preferencia tiene que vencer junto con la reserva (`vence_en`, 30 minutos) y excluir medios de pago diferidos (Rapipago, Pago Fácil); un pago que llegue con el pedido ya vencido se acepta solo si queda cupo, y si no, se devuelve.
-3. **Etapa 6:** entradas por mail (QR, PDF con diseño Nevada, Resend).
-4. **Etapa 7:** Puerta.
-5. **Etapa 8:** pruebas de permisos, revisión de RLS y despliegue.
+1. **Etapa 5:** Mercado Pago Checkout Pro y webhook. La preferencia tiene que vencer junto con la reserva (`vence_en`, 30 minutos) y excluir medios de pago diferidos (Rapipago, Pago Fácil); un pago que llegue con el pedido ya vencido se acepta solo si queda cupo, y si no, se devuelve.
+2. **Etapa 6:** entradas por mail (QR, PDF con diseño Nevada, Resend).
+3. **Etapa 7:** Puerta.
+4. **Etapa 8:** pruebas de permisos, revisión de RLS y despliegue.
 
 Trabajá por etapas, mostrando el avance, y cada etapa en commits claros.
 

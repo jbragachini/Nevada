@@ -7,6 +7,7 @@ import { TicketShell } from "@/components/TicketShell";
 import { getCheckout } from "@/lib/checkout";
 import { formatARS, formatEventDate, formatHora } from "@/lib/format";
 import { getPedido, type EstadoPedido, type Pedido } from "@/lib/pedido";
+import { contenidoQr, qrConfigurado, qrSvg } from "@/lib/qr";
 
 export const dynamic = "force-dynamic";
 
@@ -23,13 +24,13 @@ const ESTADOS: Record<EstadoPedido, { titulo: string; tono: Tono; paso: number }
   pendiente_pago: { titulo: "ESPERANDO EL PAGO", tono: "espera", paso: 1 },
   pagado: { titulo: "¡PAGO RECIBIDO!", tono: "ok", paso: 2 },
   por_confirmar: { titulo: "PAGO EN VERIFICACIÓN", tono: "espera", paso: 2 },
-  aprobado: { titulo: "¡ENTRADAS ENVIADAS!", tono: "ok", paso: 4 },
+  aprobado: { titulo: "¡ENTRADAS LISTAS!", tono: "ok", paso: 4 },
   rechazado: { titulo: "PEDIDO RECHAZADO", tono: "mal", paso: 0 },
   cancelado: { titulo: "PEDIDO CANCELADO", tono: "mal", paso: 0 },
   vencido: { titulo: "PEDIDO VENCIDO", tono: "apagado", paso: 0 },
 };
 
-const PASOS = ["Pedido creado", "Pago recibido", "Aprobado por Nevada", "Entradas enviadas por mail"];
+const PASOS = ["Pedido creado", "Pago recibido", "Aprobado por Nevada", "Entradas listas"];
 
 export default async function PedidoPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
@@ -102,10 +103,11 @@ export default async function PedidoPage({ params }: { params: Promise<{ token: 
           <p className="text-xs leading-relaxed text-muted">
             A nombre de <span className="font-semibold text-ink">{pedido.compradorNombre}</span>
             <br />
-            Las entradas van a{" "}
-            <span className="font-semibold text-ink [overflow-wrap:anywhere]">{pedido.compradorEmail}</span>
+            Mail <span className="font-semibold text-ink [overflow-wrap:anywhere]">{pedido.compradorEmail}</span>
           </p>
         </section>
+
+        {pedido.status === "aprobado" && pedido.entradas.length > 0 && <Entradas pedido={pedido} />}
 
         {(pedido.status === "vencido" || pedido.status === "rechazado" || pedido.status === "cancelado") && (
           <Link
@@ -120,8 +122,50 @@ export default async function PedidoPage({ params }: { params: Promise<{ token: 
   );
 }
 
+async function Entradas({ pedido }: { pedido: Pedido }) {
+  const conQr = qrConfigurado();
+  const svgs = conQr ? await Promise.all(pedido.entradas.map((e) => qrSvg(contenidoQr(e.qrToken)))) : [];
+  return (
+    <section aria-labelledby="entradas" className="flex flex-col gap-3">
+      <h2 id="entradas" className="text-xs font-bold uppercase tracking-[0.18em] text-muted">
+        Tus entradas
+      </h2>
+      {!conQr && (
+        <p className="rounded-xl bg-frost px-4 py-3 text-[13px] text-ink">
+          Los QR todavía no se pueden mostrar: falta configurar su firma en el servidor.
+        </p>
+      )}
+      <ul className="flex flex-col gap-3">
+        {pedido.entradas.map((e, i) => (
+          <li
+            key={e.qrToken}
+            className={`flex flex-col items-center gap-2 rounded-2xl border border-line p-4 text-center ${
+              e.status === "valida" ? "" : "opacity-60"
+            }`}
+          >
+            <p className="display text-base text-deep">{e.titular.toUpperCase()}</p>
+            <p className="text-[12.5px] text-muted">
+              {e.tipo} · entrada {i + 1} de {pedido.entradas.length}
+            </p>
+            {conQr && e.status === "valida" && (
+              <div
+                role="img"
+                aria-label={`Código QR de la entrada de ${e.titular}`}
+                className="w-full max-w-[220px] [&>svg]:h-auto [&>svg]:w-full"
+                dangerouslySetInnerHTML={{ __html: svgs[i] }}
+              />
+            )}
+            {e.status !== "valida" && (
+              <p className="text-sm font-bold text-muted">{e.status === "usada" ? "Ya ingresó" : "Anulada"}</p>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 function Explicacion({ pedido }: { pedido: Pedido }) {
-  const mail = <strong className="font-semibold [overflow-wrap:anywhere]">{pedido.compradorEmail}</strong>;
   switch (pedido.status) {
     case "pendiente_pago":
       return (
@@ -131,11 +175,11 @@ function Explicacion({ pedido }: { pedido: Pedido }) {
         </>
       );
     case "pagado":
-      return <>Estamos revisando tu pago. Cuando lo aprobemos te llegan las entradas con QR a {mail}.</>;
+      return <>Estamos revisando tu pago. Cuando lo aprobemos, tus entradas con QR aparecen en este link.</>;
     case "por_confirmar":
-      return <>Estamos confirmando tu pago. Cuando lo aprobemos te llegan las entradas con QR a {mail}.</>;
+      return <>Estamos confirmando tu pago. Cuando lo aprobemos, tus entradas con QR aparecen en este link.</>;
     case "aprobado":
-      return <>Te mandamos las entradas con QR a {mail}. Cada persona tiene la suya.</>;
+      return <>Tus entradas están abajo, una por persona. Cada uno muestra su QR en la puerta.</>;
     case "rechazado":
     case "cancelado":
       return <>No pudimos aprobar este pedido. Escribinos por Instagram con tu número de pedido y lo vemos.</>;

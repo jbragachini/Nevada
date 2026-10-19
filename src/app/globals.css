@@ -69,6 +69,12 @@ textarea {
   letter-spacing: -0.01em;
 }
 
+/* Aviso del panel */
+@keyframes aviso {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
 /* Nieve */
 .snowfall .flake {
   position: absolute;

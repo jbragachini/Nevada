@@ -15,14 +15,14 @@ export function StaffShell({
   return (
     <div className="min-h-dvh px-4 pb-16">
       <header className="sticky top-0 z-20 -mx-4 border-b border-ice/15 bg-night/92 px-4 py-3 backdrop-blur-md">
-        <div className="mx-auto flex max-w-[1120px] flex-wrap items-center gap-x-5 gap-y-3">
-          <div className="flex items-center gap-2.5 text-white">
+        <div className="mx-auto flex max-w-[1120px] flex-wrap items-center gap-x-5 gap-y-3 lg:flex-nowrap">
+          <div className="flex shrink-0 items-center gap-2.5 text-white">
             <Mountain className="h-auto w-11 text-ice" />
             <span className="display text-[15px] tracking-[0.02em]">NEVADA</span>
           </div>
           <StaffNav links={links} />
-          <div className="ml-auto flex items-center gap-3">
-            <span className="hidden text-[13px] text-frost/80 sm:inline">{nombre}</span>
+          <div className="ml-auto flex shrink-0 items-center gap-3">
+            <span className="hidden text-[13px] text-frost/80 xl:inline">{nombre}</span>
             <form action={salir}>
               <button
                 type="submit"

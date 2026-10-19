@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { qrDeEntrada } from "@/app/actions/rrpp";
+import { EstadoPill } from "@/components/EstadoPill";
 import { formatARS } from "@/lib/format";
 import type { Venta } from "@/lib/rrpp";
 
@@ -11,35 +12,6 @@ const COMO: Record<Venta["metodo"], string> = {
   transferencia_nevada: "Cargada por vos · transferencia a Nevada · no rendís",
   mercadopago: "Compró en la web y pagó a Nevada · no rendís, cobrás comisión",
 };
-
-function Estado({ v }: { v: Venta }) {
-  const [texto, clase] = (() => {
-    switch (v.status) {
-      case "aprobado":
-        return [v.metodo === "efectivo_rrpp" ? "Efectivo · QR generados" : "Aprobado", "bg-[#e5f4ea] text-ok"];
-      case "por_confirmar":
-        return ["Por aprobar", "bg-[#fdf1e4] text-warn"];
-      case "pagado":
-        return ["Pagado · por aprobar", "bg-[#fdf1e4] text-warn"];
-      case "pendiente_pago":
-        return ["Esperando el pago", "bg-frost text-blue"];
-      case "rechazado":
-        return ["Rechazado", "bg-[#fbe7e5] text-danger"];
-      case "vencido":
-        return ["Vencido", "bg-[#eceef1] text-void"];
-      default:
-        return ["Cancelado", "bg-[#eceef1] text-void"];
-    }
-  })();
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-[0.06em] ${clase}`}
-    >
-      <span aria-hidden="true" className="h-[7px] w-[7px] rounded-full bg-current" />
-      {texto}
-    </span>
-  );
-}
 
 export function VentasList({ ventas, porAprobar }: { ventas: Venta[]; porAprobar: number }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -86,7 +58,7 @@ export function VentasList({ ventas, porAprobar }: { ventas: Venta[]; porAprobar
                 </p>
                 <p className="text-[12.5px] text-muted">{COMO[v.metodo]}</p>
               </div>
-              <Estado v={v} />
+              <EstadoPill status={v.status} metodo={v.metodo} origen={v.origen} />
               {v.entradas.length > 0 && (
                 <div className="flex basis-full flex-wrap gap-2">
                   {v.entradas.map((t) => (

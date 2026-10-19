@@ -36,7 +36,7 @@ returns text language plpgsql as $$
 declare
   v text;
 begin
-  perform set_config('request.jwt.claims', coalesce(jsonb_build_object('sub', sub)::text, '{}'), true);
+  perform set_config('request.jwt.claims', coalesce(jsonb_build_object('sub', sub, 'aal', 'aal2')::text, '{}'), true);
   perform set_config('role', rol, true);
   execute consulta into v;
   perform set_config('role', 'postgres', true);

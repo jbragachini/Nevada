@@ -14,7 +14,8 @@ Traspaso para Claude Code en [`CLAUDE.md`](CLAUDE.md); demo de referencia en `do
 | 2. Pedidos y base de datos | ✅ Terminada (modelo de datos completo, seguridad por filas, creación real de pedidos con montos y cupo calculados en la base, link privado de seguimiento `/pedido/[token]`) |
 | 3. Panel de vendedores | ✅ Terminada (`/ingresar` con usuario o mail, pedido de acceso de RRPP pendiente de aprobación, panel con métricas, comisiones, lo que hay que rendir, link personal, ventas con QR, carga de ventas con una persona por entrada, lista de invitados) |
 | Eventos con invitación | ✅ Cada evento es **público**, **con lista de invitados** (por mail, hasta su máximo de entradas) o **con palabra clave**; se puede ocultar «¿Quién te vendió?» |
-| 4–8 | ⏳ Pendientes |
+| 4. Admin y comisiones | ✅ Terminada (panel `/admin` con doble verificación: resumen, eventos y tipos de entrada, acceso público / lista / palabra clave, por aprobar, ventas por vendedor, comisiones y rendiciones, RRPP y accesos, invitados, entradas y QR, auditoría) |
+| 5–8 | ⏳ Pendientes |
 
 **Medio de pago:** Mercado Pago (Checkout Pro). El comprador paga el total en Mercado Pago; el pedido queda *pagado* solo cuando Mercado Pago lo confirma al servidor, y las entradas con QR se liberan cuando el administrador aprueba el pedido. Mercado Pago cobra comisión por cada venta según el plazo de acreditación elegido.
 
@@ -39,38 +40,20 @@ scripts/probar-base.sh       # aplica todas las migraciones en una base descarta
 ## Configurar Supabase (falta hacerlo)
 
 1. Crear un proyecto en [supabase.com](https://supabase.com).
-2. En **SQL Editor**, pegar y ejecutar en orden los archivos de `supabase/migrations/` (`0001_…` a `0006_…`).
-   Crea el evento *Navidad con Nevada 2026* en la página, con las ventas **cerradas** y dos tipos de entrada (General $15.000 y +25 $20.000, cupos 400 y 200, comisión $0: son valores iniciales, editables).
+2. En **SQL Editor**, pegar y ejecutar en orden todos los archivos de `supabase/migrations/` (`0001_…` a `0008_…`).
+   Crea el evento *Navidad con Nevada 2026* en la página, con las ventas **cerradas** y dos tipos de entrada (General $15.000 y +25 $20.000, cupos 400 y 200, comisión $0: son valores iniciales, se cambian desde el panel).
 3. En **Project Settings → API**, copiar a `.env.local`: `Project URL` → `NEXT_PUBLIC_SUPABASE_URL`, `anon public` → `NEXT_PUBLIC_SUPABASE_ANON_KEY` y `service_role` → `SUPABASE_SERVICE_ROLE_KEY` (esta última es secreta: solo servidor).
-4. Generar `PEDIDO_TOKEN_SECRET` con `openssl rand -hex 32`.
-5. Cargar los RRPP (mientras no exista el panel admin):
-   `insert into sellers (nombre_publico, codigo) values ('Nombre Apellido', 'nombre');`
-   Su link personal será `https://www.nevadaproducciones.com/?rrpp=nombre`.
-6. En **Authentication → Sign In / Providers**: dejar habilitado **Email** y **desactivar «Allow new users to sign up»** (los RRPP piden acceso desde `/ingresar`, que crea el usuario desde el servidor; nadie se registra por su cuenta). Desactivar también «Confirm email».
+4. Generar `PEDIDO_TOKEN_SECRET` y `QR_SIGNING_SECRET`, cada uno con `openssl rand -hex 32`.
+5. En **Authentication → Sign In / Providers**: dejar habilitado **Email**, **desactivar «Allow new users to sign up»** (los RRPP piden acceso desde `/ingresar`, que crea el usuario desde el servidor; nadie se registra por su cuenta) y desactivar «Confirm email».
+6. En **Authentication → Multi-Factor**: dejar habilitado **TOTP** (app autenticadora), que viene activado por defecto.
 7. Crear tu usuario de admin: **Authentication → Users → Add user** (mail y contraseña), copiar su `UID` y en el SQL Editor:
    `insert into profiles (id, nombre, usuario, rol, activo) values ('UID', 'Joaquín', 'admin', 'admin', true);`
-8. Generar `QR_SIGNING_SECRET` con `openssl rand -hex 32`.
-9. Precios, cupos y comisión por entrada (mientras no exista el panel admin):
-   `update ticket_types set precio = 15000, cupo_total = 400, comision_rrpp = 1000 where nombre = 'Entrada General';`
-10. Para abrir las ventas mientras no exista el panel admin:
-   `update events set ventas_abiertas = true where publicado;`
 
-### Mientras no exista el panel admin (etapa 4)
+### Primer ingreso del admin
 
-- **Aprobar un RRPP** que pidió acceso (reemplazar `lucas` por su usuario y elegir su código de link):
-  ```sql
-  update profiles set activo = true where usuario = 'lucas';
-  update access_requests set estado = 'aprobada' where profile_id = (select id from profiles where usuario = 'lucas');
-  insert into sellers (profile_id, nombre_publico, codigo)
-    select id, nombre, 'lucas' from profiles where usuario = 'lucas';
-  ```
-- **Acceso del evento:**
-  - Público: `update events set acceso = 'publico' where publicado;`
-  - Con lista de invitados: `update events set acceso = 'lista' where publicado;`
-  - Con palabra clave: `update events set acceso = 'clave', clave_acceso = 'Noche Blanca' where publicado;` (no importan mayúsculas, acentos ni espacios de más)
-- **Mostrar u ocultar «¿Quién te vendió?»:** `update events set mostrar_rrpp = false where publicado;`
-- **Tope de invitados de un RRPP** por evento: `update sellers set max_invitados = 20 where codigo = 'lucas';` (`null` = sin tope).
-- **Invitar desde Nevada:** `insert into event_guests (event_id, email, nombre, max_entradas) select id, 'mail@ejemplo.com', 'Nombre', 2 from events where publicado;`
+Entrá en `/ingresar` con tu usuario y contraseña. La primera vez te pide activar la **doble verificación**: escaneás un QR con una app autenticadora (Google Authenticator, Microsoft Authenticator o similar) y desde ahí cada ingreso pide el código de 6 números. Sin ese código la base no deja hacer nada de admin, aunque alguien tenga la contraseña.
+
+Todo lo demás (eventos, precios, comisiones, abrir ventas, aprobar RRPP y pedidos, invitados, palabra clave) se hace desde el panel `/admin`. Los RRPP piden acceso en `/ingresar` y los aprobás en **Admin → RRPP**, donde elegís el código de su link (`/?rrpp=codigo`).
 
 ## Dominio: www.nevadaproducciones.com (falta comprarlo y conectarlo)
 

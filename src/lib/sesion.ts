@@ -73,9 +73,19 @@ export async function requireRrpp(): Promise<Sesion> {
   return s;
 }
 
+/** Nivel de verificación de la sesión: aal2 = ya pasó la doble verificación. */
+export async function getNivel(): Promise<{ actual: string | null; siguiente: string | null }> {
+  const supabase = await getServerSupabase();
+  if (!supabase) return { actual: null, siguiente: null };
+  const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  return { actual: data?.currentLevel ?? null, siguiente: data?.nextLevel ?? null };
+}
+
+/** Páginas del admin: además del rol, exige la doble verificación hecha en esta sesión. */
 export async function requireAdmin(): Promise<Sesion> {
   const s = await getSesion();
   if (!s) redirect("/ingresar");
   if (s.rol !== "admin" || !s.activo) redirect("/rrpp");
+  if ((await getNivel()).actual !== "aal2") redirect("/ingresar/verificacion");
   return s;
 }

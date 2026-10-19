@@ -45,7 +45,73 @@ export async function ingresar(input: unknown): Promise<AuthResult> {
     await supabase.auth.signOut();
     return { ok: false, error: "Tu usuario no tiene acceso a la plataforma." };
   }
-  redirect(inicioDe(perfil));
+  // El admin pasa siempre por la doble verificación.
+  redirect(perfil.rol === "admin" ? "/ingresar/verificacion" : inicioDe(perfil));
+}
+
+// ───────── Doble verificación (TOTP) del admin ─────────
+
+const codigoSchema = z.string().trim().regex(/^\d{6}$/, "Son 6 números");
+
+async function sesionAdmin() {
+  const supabase = await getServerSupabase();
+  if (!supabase) return null;
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) return null;
+  const { data: perfil } = await supabase.from("profiles").select("rol,activo").eq("id", data.user.id).maybeSingle();
+  return perfil?.rol === "admin" && perfil.activo ? supabase : null;
+}
+
+export type AltaResult =
+  | { ok: true; factorId: string; qr: string; secreto: string }
+  | { ok: false; error: string };
+
+/** Empieza el alta de la app autenticadora: devuelve el QR para escanear. */
+export async function iniciarAlta(): Promise<AltaResult> {
+  const supabase = await sesionAdmin();
+  if (!supabase) return { ok: false, error: "Volvé a ingresar con tu usuario y contraseña." };
+  // Limpia altas que quedaron a medias para que no se acumulen.
+  const { data: factores } = await supabase.auth.mfa.listFactors();
+  if (factores?.totp.length) return { ok: false, error: "Ya tenés la doble verificación activada." };
+  for (const f of factores?.all ?? []) {
+    if (f.status === "unverified") await supabase.auth.mfa.unenroll({ factorId: f.id });
+  }
+  const { data, error } = await supabase.auth.mfa.enroll({ factorType: "totp", friendlyName: "Nevada admin" });
+  if (error || !data) {
+    console.error("mfa enroll:", error?.message);
+    return { ok: false, error: "No pudimos generar el código. Probá de nuevo." };
+  }
+  return { ok: true, factorId: data.id, qr: data.totp.qr_code, secreto: data.totp.secret };
+}
+
+/** Confirma el alta con el primer código de la app y deja la sesión verificada. */
+export async function confirmarAlta(factorId: string, codigo: string): Promise<AuthResult> {
+  const supabase = await sesionAdmin();
+  if (!supabase) return { ok: false, error: "Volvé a ingresar con tu usuario y contraseña." };
+  const c = codigoSchema.safeParse(codigo);
+  if (!c.success) return { ok: false, fieldErrors: { codigo: "Son 6 números" } };
+  const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId, code: c.data });
+  if (error) return { ok: false, fieldErrors: { codigo: "Ese código no es correcto o ya venció. Probá con el que muestra ahora la app." } };
+  redirect("/admin");
+}
+
+/** Pide el código de la app en cada ingreso del admin. */
+export async function verificarCodigo(codigo: string): Promise<AuthResult> {
+  const supabase = await sesionAdmin();
+  if (!supabase) return { ok: false, error: "Volvé a ingresar con tu usuario y contraseña." };
+  const c = codigoSchema.safeParse(codigo);
+  if (!c.success) return { ok: false, fieldErrors: { codigo: "Son 6 números" } };
+  const { data: factores } = await supabase.auth.mfa.listFactors();
+  const factor = factores?.totp[0];
+  if (!factor) return { ok: false, error: "Todavía no activaste la doble verificación." };
+  const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId: factor.id, code: c.data });
+  if (error) {
+    if ("status" in error && error.status === 429) {
+      return { ok: false, error: "Demasiados intentos. Esperá unos minutos y volvé a probar." };
+    }
+    return { ok: false, fieldErrors: { codigo: "Ese código no es correcto o ya venció. Probá con el que muestra ahora la app." } };
+  }
+  redirect("/admin");
 }
 
 const accesoSchema = z.object({

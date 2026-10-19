@@ -430,7 +430,14 @@ as $$
       where i.order_id = o.id
     ), '[]'::jsonb),
     'entradas_emitidas', (select count(*) from public.tickets k
-                          where k.order_id = o.id and k.status <> 'anulada')
+                          where k.order_id = o.id and k.status <> 'anulada'),
+    -- Las entradas del pedido (para mostrar los QR en el link privado una vez aprobado).
+    'entradas', coalesce((
+      select jsonb_agg(jsonb_build_object(
+               'titular', k.titular_nombre, 'tipo', t.nombre, 'qr_token', k.qr_token, 'status', k.status
+             ) order by t.orden, k.titular_nombre)
+      from public.tickets k join public.ticket_types t on t.id = k.ticket_type_id
+      where k.order_id = o.id), '[]'::jsonb)
   )
   from public.orders o
   join public.events e on e.id = o.event_id
