@@ -3,10 +3,12 @@ import { Accion } from "@/components/admin/Accion";
 import { Card, Titulo, Vacio } from "@/components/admin/ui";
 import { EstadoPill } from "@/components/EstadoPill";
 import { formatARS, formatFechaHora } from "@/lib/format";
-import { getPorAprobar, type Pedido } from "@/lib/admin";
+import { getPorAprobar, urlsDeComprobantes, type Pedido } from "@/lib/admin";
 
 function medio(p: Pedido): string {
   switch (p.metodo) {
+    case "transferencia_web":
+      return "Transferencia a Nevada desde la web: mirá el comprobante y fijate en tu app que la plata entró";
     case "mercadopago":
       return `Mercado Pago a Nevada${p.mpPaymentId ? ` · operación ${p.mpPaymentId}` : ""}`;
     case "transferencia_nevada":
@@ -20,10 +22,15 @@ function medio(p: Pedido): string {
 
 export default async function PorAprobarPage() {
   const pedidos = await getPorAprobar();
+  const urls = await urlsDeComprobantes(pedidos.flatMap((p) => (p.comprobante ? [p.comprobante.path] : [])));
 
   return (
     <>
       <Titulo extra={<p className="text-[13px] text-ice">Al aprobar se emiten las entradas con QR</p>}>Por aprobar</Titulo>
+      <p className="-mt-2 mb-5 max-w-[70ch] text-sm leading-relaxed text-frost">
+        Mirá el comprobante y confirmá en tu app de Mercado Pago que la plata <b className="text-white">entró</b> por
+        el mismo monto: un comprobante puede estar trucho.
+      </p>
       {pedidos.length === 0 ? (
         <Card>
           <Vacio>No hay pedidos esperando aprobación.</Vacio>
@@ -46,6 +53,7 @@ export default async function PorAprobarPage() {
                     </p>
                   </div>
                   <div className="text-right">
+                    <p className="text-[10.5px] font-bold uppercase tracking-[0.16em] text-muted">Tiene que llegar</p>
                     <p className="display text-xl text-deep tabular-nums">{formatARS(p.total)}</p>
                     <EstadoPill status={p.status} />
                   </div>
@@ -67,6 +75,34 @@ export default async function PorAprobarPage() {
                     <dt className="sr-only">Pago</dt>
                     <dd className="font-semibold text-blue">{medio(p)}</dd>
                   </div>
+                  {p.comprobante && (
+                    <div className="sm:col-span-2">
+                      <dt className="sr-only">Comprobante</dt>
+                      <dd>
+                        {urls[p.comprobante.path] ? (
+                          <a
+                            href={urls[p.comprobante.path]}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-1 inline-flex items-center gap-3 rounded-2xl border border-line p-2 pr-4 text-sm font-semibold hover:border-ice focus-visible:outline-2 focus-visible:outline-ice"
+                          >
+                            {p.comprobante.tipo === "application/pdf" ? (
+                              <span className="grid h-16 w-16 place-items-center rounded-xl bg-danger text-xs font-bold text-white">PDF</span>
+                            ) : (
+                              // eslint-disable-next-line @next/next/no-img-element -- link firmado del Storage privado
+                              <img src={urls[p.comprobante.path]} alt="" className="h-16 w-16 rounded-xl bg-white object-cover" />
+                            )}
+                            Ver comprobante
+                          </a>
+                        ) : (
+                          <span className="text-sm text-warn">No pudimos abrir el comprobante. Recargá la página.</span>
+                        )}
+                      </dd>
+                    </div>
+                  )}
+                  {p.origen === "web" && p.metodo === "transferencia_web" && !p.comprobante && (
+                    <div className="sm:col-span-2 text-sm text-warn">Sin comprobante</div>
+                  )}
                 </dl>
                 <div className="mt-4 flex flex-wrap gap-2 border-t border-line pt-4">
                   <Accion

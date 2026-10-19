@@ -1,5 +1,7 @@
 import "server-only";
 import { cookies } from "next/headers";
+import { BUCKET_COMPROBANTES } from "@/lib/comprobante";
+import { getAdminSupabase } from "@/lib/supabase/admin";
 import { getServerSupabase } from "@/lib/supabase/server";
 
 /**
@@ -158,7 +160,7 @@ export type Pedido = {
   whatsapp: string | null;
   evento: string;
   origen: "web" | "rrpp";
-  metodo: "mercadopago" | "efectivo_rrpp" | "transferencia_rrpp" | "transferencia_nevada";
+  metodo: "mercadopago" | "transferencia_web" | "efectivo_rrpp" | "transferencia_rrpp" | "transferencia_nevada";
   status: string;
   total: number;
   comision: number;
@@ -167,6 +169,8 @@ export type Pedido = {
   creadoEn: string;
   items: { nombre: string; cantidad: number }[];
   mpPaymentId: string | null;
+  /** Comprobante de la transferencia web (ruta en el Storage privado). */
+  comprobante: { path: string; tipo: string | null } | null;
   motivoRechazo: string | null;
 };
 
@@ -187,13 +191,13 @@ type PedidoRow = {
   events: { nombre: string } | null;
   sellers: { nombre_publico: string } | null;
   order_items: { cantidad: number; comision_unitaria: number; ticket_types: { nombre: string; orden: number } | null }[];
-  payments: { mp_payment_id: string | null }[];
+  payments: { mp_payment_id: string | null; comprobante_path: string | null; comprobante_tipo: string | null }[];
 };
 
 const PEDIDO_COLS =
   "id,numero,comprador_nombre,comprador_apellido,comprador_email,comprador_whatsapp,origen,metodo_pago,status,total," +
   "creado_en,seller_id,motivo_rechazo,events(nombre),sellers(nombre_publico)," +
-  "order_items(cantidad,comision_unitaria,ticket_types(nombre,orden)),payments(mp_payment_id)";
+  "order_items(cantidad,comision_unitaria,ticket_types(nombre,orden)),payments(mp_payment_id,comprobante_path,comprobante_tipo)";
 
 function pedido(o: PedidoRow): Pedido {
   return {
@@ -216,6 +220,10 @@ function pedido(o: PedidoRow): Pedido {
       .sort((a, b) => (a.ticket_types?.orden ?? 0) - (b.ticket_types?.orden ?? 0))
       .map((i) => ({ nombre: i.ticket_types?.nombre ?? "", cantidad: i.cantidad })),
     mpPaymentId: o.payments.find((p) => p.mp_payment_id)?.mp_payment_id ?? null,
+    comprobante: (() => {
+      const p = o.payments.find((x) => x.comprobante_path);
+      return p?.comprobante_path ? { path: p.comprobante_path, tipo: p.comprobante_tipo } : null;
+    })(),
     motivoRechazo: o.motivo_rechazo,
   };
 }
@@ -478,4 +486,19 @@ function resumenCambio(d: Record<string, unknown> | null): string {
     .filter((k) => d[k] !== undefined && d[k] !== null)
     .map((k) => `${k.replace("_", " ")}: ${String(d[k])}`)
     .join(" · ");
+}
+
+/**
+ * Links temporales (10 minutos) para ver los comprobantes en «Por aprobar». El Storage es privado:
+ * solo el servidor, ya con el admin verificado, puede firmarlos.
+ */
+export async function urlsDeComprobantes(paths: string[]): Promise<Record<string, string>> {
+  const supabase = getAdminSupabase();
+  if (!supabase || paths.length === 0) return {};
+  const { data, error } = await supabase.storage.from(BUCKET_COMPROBANTES).createSignedUrls(paths, 600);
+  if (error || !data) {
+    console.error("comprobantes:", error?.message);
+    return {};
+  }
+  return Object.fromEntries(data.filter((d) => d.signedUrl && d.path).map((d) => [d.path as string, d.signedUrl]));
 }

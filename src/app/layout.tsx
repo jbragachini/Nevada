@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import "@fontsource-variable/archivo/wdth.css";
 import "@fontsource-variable/montserrat";
 import "./globals.css";
 

@@ -2,16 +2,16 @@
 
 export const boton = {
   primario:
-    "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-deep px-4 text-sm font-bold text-white transition-colors hover:bg-blue focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue disabled:cursor-progress disabled:opacity-70",
+    "inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-ice px-5 text-sm font-bold text-night transition-colors hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice disabled:cursor-progress disabled:opacity-70",
   secundario:
-    "inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-line px-3 text-[13px] font-semibold text-muted transition-colors hover:border-blue hover:text-deep focus-visible:outline-2 focus-visible:outline-blue disabled:opacity-60",
+    "inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-line px-4 text-[13px] font-semibold text-muted transition-colors hover:border-ice hover:text-white focus-visible:outline-2 focus-visible:outline-blue disabled:opacity-60",
   peligro:
-    "inline-flex min-h-10 items-center justify-center gap-2 rounded-xl px-3 text-[13px] font-semibold text-danger transition-colors hover:bg-[#fdecea] focus-visible:outline-2 focus-visible:outline-danger disabled:opacity-60",
+    "inline-flex min-h-10 items-center justify-center gap-2 rounded-full px-4 text-[13px] font-semibold text-danger transition-colors hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-danger disabled:opacity-60",
   oscuro:
-    "inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-ice/30 px-3 text-[13px] font-semibold text-frost transition-colors hover:border-ice hover:text-white focus-visible:outline-2 focus-visible:outline-ice disabled:opacity-60",
+    "inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-ice/30 px-4 text-[13px] font-semibold text-frost transition-colors hover:border-ice hover:text-white focus-visible:outline-2 focus-visible:outline-ice disabled:opacity-60",
   claro:
-    "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-ice px-4 text-sm font-bold text-night transition-colors hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice",
-  ok: "inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-ok px-3 text-[13px] font-bold text-white transition-colors hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ok disabled:cursor-progress disabled:opacity-70",
+    "inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-ice px-5 text-sm font-bold text-night transition-colors hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ice",
+  ok: "inline-flex min-h-10 items-center justify-center gap-2 rounded-full bg-ok px-4 text-[13px] font-bold text-white transition-colors hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ok disabled:cursor-progress disabled:opacity-70",
 };
 
 export const campo =

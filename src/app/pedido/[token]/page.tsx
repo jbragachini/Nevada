@@ -4,10 +4,12 @@ import { notFound } from "next/navigation";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { NevadaLogo } from "@/components/NevadaLogo";
 import { TicketShell } from "@/components/TicketShell";
-import { getCheckout } from "@/lib/checkout";
+import { PagoTransferencia } from "@/components/PagoTransferencia";
+import { getCuentaPago } from "@/lib/checkout";
 import { formatARS, formatEventDate, formatHora } from "@/lib/format";
 import { getPedido, type EstadoPedido, type Pedido } from "@/lib/pedido";
 import { codigoCorto, contenidoQr, qrConfigurado, qrSvg } from "@/lib/qr";
+import { FlechaGl } from "@/components/FlechaGl";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +23,7 @@ export const metadata: Metadata = {
 type Tono = "ok" | "espera" | "mal" | "apagado";
 
 const ESTADOS: Record<EstadoPedido, { titulo: string; tono: Tono; paso: number }> = {
-  pendiente_pago: { titulo: "ESPERANDO EL PAGO", tono: "espera", paso: 1 },
+  pendiente_pago: { titulo: "FALTA TRANSFERIR", tono: "espera", paso: 1 },
   pagado: { titulo: "¡PAGO RECIBIDO!", tono: "ok", paso: 2 },
   por_confirmar: { titulo: "PAGO EN VERIFICACIÓN", tono: "espera", paso: 2 },
   aprobado: { titulo: "¡ENTRADAS LISTAS!", tono: "ok", paso: 4 },
@@ -30,7 +32,7 @@ const ESTADOS: Record<EstadoPedido, { titulo: string; tono: Tono; paso: number }
   vencido: { titulo: "PEDIDO VENCIDO", tono: "apagado", paso: 0 },
 };
 
-const PASOS = ["Pedido creado", "Pago recibido", "Aprobado por Nevada", "Entradas listas"];
+const PASOS = ["Pedido creado", "Comprobante enviado", "Aprobado por Nevada", "Entradas listas"];
 
 export default async function PedidoPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
@@ -39,8 +41,8 @@ export default async function PedidoPage({ params }: { params: Promise<{ token: 
 
   const estado = ESTADOS[pedido.status];
   const enCurso = estado.paso > 0 && estado.paso < 4;
-  const checkout = getCheckout();
-  const dePrueba = pedido.status === "pendiente_pago" && checkout.habilitado && checkout.modo === "prueba";
+  const pagar = pedido.metodo === "transferencia_web" && (pedido.status === "pendiente_pago" || pedido.status === "vencido");
+  const cuenta = getCuentaPago();
   const f = formatEventDate(pedido.evento.fechaInicio);
 
   return (
@@ -72,12 +74,14 @@ export default async function PedidoPage({ params }: { params: Promise<{ token: 
           </p>
         </header>
 
-        {dePrueba && (
-          <p className="rounded-xl border border-line bg-frost px-4 py-3 text-[13px] leading-relaxed text-ink">
-            <strong className="font-bold">Pedido de prueba.</strong> El pago con Mercado Pago todavía no está
-            conectado, así que este pedido no se puede pagar: se libera solo a las{" "}
-            {pedido.venceEn ? formatHora(pedido.venceEn) : "—"}.
-          </p>
+        {pagar && (
+          <PagoTransferencia
+            token={token}
+            total={pedido.total}
+            alias={cuenta.alias}
+            titular={cuenta.titular}
+            vencido={pedido.status === "vencido"}
+          />
         )}
 
         {estado.paso > 0 && <Pasos actual={estado.paso} />}
@@ -95,7 +99,7 @@ export default async function PedidoPage({ params }: { params: Promise<{ token: 
                 <span className="text-sm font-semibold text-ink tabular-nums">{formatARS(i.subtotal)}</span>
               </li>
             ))}
-            <li className="flex items-baseline justify-between gap-4 rounded-b-2xl bg-night px-4 py-4 text-white">
+            <li className="flex items-baseline justify-between gap-4 rounded-b-2xl bg-[#01060e]/60 px-4 py-4 text-white">
               <span className="text-sm text-ice">Total</span>
               <span className="display text-xl tabular-nums">{formatARS(pedido.total)}</span>
             </li>
@@ -109,12 +113,13 @@ export default async function PedidoPage({ params }: { params: Promise<{ token: 
 
         {pedido.status === "aprobado" && pedido.entradas.length > 0 && <Entradas pedido={pedido} />}
 
-        {(pedido.status === "vencido" || pedido.status === "rechazado" || pedido.status === "cancelado") && (
+        {(pedido.status === "rechazado" || pedido.status === "cancelado" || (pedido.status === "vencido" && !pagar)) && (
           <Link
             href="/"
-            className="flex min-h-12 items-center justify-center rounded-xl bg-deep px-4 py-3 text-sm font-extrabold uppercase tracking-[0.12em] text-white transition-colors hover:bg-blue focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue"
+            className="gl w-full"
           >
-            Volver a las entradas
+            <span>Volver a las entradas</span>
+            <FlechaGl />
           </Link>
         )}
       </div>
@@ -151,7 +156,7 @@ async function Entradas({ pedido }: { pedido: Pedido }) {
               <div
                 role="img"
                 aria-label={`Código QR de la entrada de ${e.titular}`}
-                className="w-full max-w-[220px] [&>svg]:h-auto [&>svg]:w-full"
+                className="qr-blanco w-full max-w-[220px] [&>svg]:h-auto [&>svg]:w-full"
                 dangerouslySetInnerHTML={{ __html: svgs[i] }}
               />
             )}
@@ -175,21 +180,31 @@ function Explicacion({ pedido }: { pedido: Pedido }) {
     case "pendiente_pago":
       return (
         <>
-          Reservamos tus entradas hasta las {pedido.venceEn ? formatHora(pedido.venceEn) : "—"}. Si el pago no se
-          completa antes, se liberan.
+          Transferí el total a Nevada antes de las {pedido.venceEn ? formatHora(pedido.venceEn) : "—"}. Si no llega a
+          tiempo, las entradas se liberan.
         </>
       );
     case "pagado":
       return <>Estamos revisando tu pago. Cuando lo aprobemos, tus entradas con QR aparecen en este link.</>;
     case "por_confirmar":
-      return <>Estamos confirmando tu pago. Cuando lo aprobemos, tus entradas con QR aparecen en este link.</>;
+      return (
+        <>
+          Recibimos tu comprobante y estamos revisando que llegó la transferencia. Cuando la aprobemos, tus entradas
+          con QR aparecen en este link.
+        </>
+      );
     case "aprobado":
       return <>Tus entradas están abajo, una por persona. Cada uno muestra su QR en la puerta.</>;
     case "rechazado":
     case "cancelado":
       return <>No pudimos aprobar este pedido. Escribinos por Instagram con tu número de pedido y lo vemos.</>;
     case "vencido":
-      return <>Pasó el plazo para pagar y las entradas se liberaron. Podés hacer una compra nueva.</>;
+      return (
+        <>
+          Pasó el plazo para pagar. Si ya transferiste, subí el comprobante igual: si todavía quedan entradas, lo
+          revisamos.
+        </>
+      );
   }
 }
 
@@ -206,7 +221,7 @@ function Pasos({ actual }: { actual: number }) {
               <span
                 className={`grid h-6 w-6 shrink-0 place-items-center rounded-full ${
                   hecho
-                    ? "bg-deep text-white"
+                    ? "bg-ice text-night"
                     : ahora
                       ? "border-2 border-blue bg-white"
                       : "border-2 border-line bg-white"

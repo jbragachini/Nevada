@@ -2,15 +2,14 @@ import "server-only";
 import { tokenSecretConfigured } from "@/lib/pedido-token";
 
 export type Checkout =
-  | { habilitado: true; modo: "prueba" }
+  | { habilitado: true; modo: "transferencia" }
   | { habilitado: false; motivo: string };
 
 /**
  * ¿Se pueden registrar pedidos desde la página?
  *
- * Mientras no esté Mercado Pago (etapa 5) la compra real queda apagada. Con PEDIDOS_DE_PRUEBA=true
- * se pueden registrar pedidos de prueba SIN pago, para probar el circuito: quedan «esperando el
- * pago» y vencen solos. Ese modo nunca se activa en la producción de Vercel.
+ * La compra web se paga con una transferencia común a la cuenta de Nevada (sin comisión): el
+ * comprador transfiere, sube el comprobante y el admin aprueba. Alcanza con la base conectada.
  */
 export function getCheckout(): Checkout {
   const baseLista =
@@ -20,7 +19,13 @@ export function getCheckout(): Checkout {
   if (!baseLista) {
     return { habilitado: false, motivo: "La compra se habilita cuando se conecte la base de datos." };
   }
-  const pruebas = process.env.PEDIDOS_DE_PRUEBA === "true" && process.env.VERCEL_ENV !== "production";
-  if (pruebas) return { habilitado: true, modo: "prueba" };
-  return { habilitado: false, motivo: "La compra se habilita cuando se conecte Mercado Pago." };
+  return { habilitado: true, modo: "transferencia" };
+}
+
+/** A dónde se transfiere. Se configura en Vercel; el alias por defecto es el de Nevada. */
+export function getCuentaPago(): { alias: string; titular: string | null } {
+  return {
+    alias: (process.env.PAGO_ALIAS || "nevadaoncativo").trim(),
+    titular: process.env.PAGO_TITULAR?.trim() || null,
+  };
 }

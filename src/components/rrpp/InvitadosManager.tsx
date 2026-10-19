@@ -142,7 +142,7 @@ export function InvitadosManager({
             <button
               type="submit"
               disabled={pending}
-              className="mt-1 min-h-12 rounded-xl bg-deep px-4 text-sm font-extrabold uppercase tracking-[0.12em] text-white transition-colors hover:bg-blue focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue disabled:opacity-80"
+              className="mt-1 gl gl-centro w-full"
             >
               {pending ? "Guardando…" : "Agregar a la lista"}
             </button>

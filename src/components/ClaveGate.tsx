@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { verificarClave } from "@/app/actions/pedidos";
 import { useClaveCompartida } from "@/components/ClaveCompartida";
 import { TicketForm } from "@/components/TicketForm";
+import { FlechaGl } from "@/components/FlechaGl";
 
 type FormProps = Omit<React.ComponentProps<typeof TicketForm>, "clave" | "invitado">;
 
@@ -96,9 +97,10 @@ export function ClaveGate(props: FormProps) {
         type="submit"
         disabled={pending}
         aria-busy={pending}
-        className="flex min-h-12 items-center justify-center rounded-xl bg-deep px-4 py-3 text-sm font-extrabold uppercase tracking-[0.12em] text-white transition-colors hover:bg-blue focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue disabled:cursor-progress disabled:opacity-80"
+        className="gl w-full"
       >
-        {pending ? "Verificando…" : "Entrar"}
+        <span>{pending ? "Verificando…" : "Entrar"}</span>
+        <FlechaGl />
       </button>
     </form>
   );

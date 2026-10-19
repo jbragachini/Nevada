@@ -211,7 +211,7 @@ export function CargarVenta({ eventos }: { eventos: EventoCarga[] }) {
                   onClick={() => cambiar(t.id, 1, t.maxPorCompra)}
                   disabled={q >= t.maxPorCompra || personas.length >= 20 || pending}
                   aria-label={`Agregar una ${t.nombre}`}
-                  className="grid h-11 w-11 place-items-center rounded-full bg-deep text-white transition-colors hover:bg-blue disabled:opacity-30"
+                  className="grid h-11 w-11 place-items-center rounded-full bg-ice text-night transition-colors hover:bg-white disabled:opacity-30"
                 >
                   <Icono mas />
                 </button>
@@ -308,7 +308,7 @@ export function CargarVenta({ eventos }: { eventos: EventoCarga[] }) {
         type="submit"
         disabled={pending}
         aria-busy={pending}
-        className="flex min-h-12 items-center justify-center rounded-xl bg-deep px-4 py-3 text-sm font-extrabold uppercase tracking-[0.12em] text-white transition-colors hover:bg-blue focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue disabled:cursor-progress disabled:opacity-80"
+        className="gl gl-centro w-full"
       >
         {pending ? "Guardando…" : metodo === "efectivo_rrpp" ? "Generar entradas" : "Enviar para aprobar"}
       </button>

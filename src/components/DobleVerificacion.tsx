@@ -6,7 +6,7 @@ import { confirmarAlta, iniciarAlta, verificarCodigo } from "@/app/actions/auth"
 const campoCodigo =
   "w-full rounded-xl border border-line bg-white px-4 py-3 text-center text-2xl font-bold tracking-[0.4em] text-ink tabular-nums outline-none transition focus:border-blue focus:ring-4 focus:ring-ice/40 aria-[invalid=true]:border-danger";
 const botonPrincipal =
-  "flex min-h-12 items-center justify-center rounded-xl bg-deep px-4 py-3 text-sm font-extrabold uppercase tracking-[0.12em] text-white transition-colors hover:bg-blue focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue disabled:cursor-progress disabled:opacity-80";
+  "gl w-full justify-center";
 
 function Codigo({
   enviar,

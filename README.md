@@ -21,7 +21,7 @@ Traspaso para Claude Code en [`CLAUDE.md`](CLAUDE.md); demo de referencia en `do
 
 **Medio de pago:** Mercado Pago (Checkout Pro). El comprador paga el total en Mercado Pago; el pedido queda *pagado* solo cuando Mercado Pago lo confirma al servidor, y las entradas con QR se liberan cuando el administrador aprueba el pedido. Mercado Pago cobra comisión por cada venta según el plazo de acreditación elegido.
 
-El botón **Pagar con Mercado Pago** está deshabilitado a propósito hasta que se conecte Mercado Pago (etapa 5). No se simula ningún pago. Para probar el circuito antes, con `PEDIDOS_DE_PRUEBA=true` el botón pasa a **Registrar pedido de prueba**: crea el pedido de verdad en la base (sin cobrar), lleva al link privado y el pedido vence solo a los 30 minutos. Ese modo nunca se activa en la producción de Vercel.
+**Pago:** sin comisión, por **transferencia común** al alias de Nevada (`nevadaoncativo`). El comprador toca **Pagar**, ve el monto exacto y el alias, transfiere desde su banco o billetera, **sube el comprobante** (foto, captura o PDF) y toca **Pagado**. El pedido queda en **Por aprobar**: el admin mira el comprobante, confirma en su app que la plata entró y aprueba; ahí aparecen las entradas con QR. El mismo comprobante no se acepta en dos pedidos. Las entradas quedan reservadas 60 minutos.
 
 Sin Supabase configurado, la página muestra una **vista previa** con datos de ejemplo y un aviso visible.
 
@@ -42,10 +42,11 @@ scripts/probar-base.sh       # aplica todas las migraciones en una base descarta
 ## Configurar Supabase (falta hacerlo)
 
 1. Crear un proyecto en [supabase.com](https://supabase.com).
-2. En **SQL Editor**, pegar y ejecutar en orden todos los archivos de `supabase/migrations/` (`0001_…` a `0010_…`).
+2. En **SQL Editor**, pegar y ejecutar **`supabase/todo-en-uno.sql`** (tiene todas las migraciones, de `0001_…` a `0011_…`, en orden; se regenera con `scripts/armar-sql-unico.sh`).
    Crea el evento *Navidad con Nevada 2026* en la página, con las ventas **cerradas** y dos tipos de entrada (General $15.000 y +25 $20.000, cupos 400 y 200, comisión $0: son valores iniciales, se cambian desde el panel).
 3. En **Project Settings → API**, copiar a `.env.local`: `Project URL` → `NEXT_PUBLIC_SUPABASE_URL`, `anon public` → `NEXT_PUBLIC_SUPABASE_ANON_KEY` y `service_role` → `SUPABASE_SERVICE_ROLE_KEY` (esta última es secreta: solo servidor).
-4. Generar `PEDIDO_TOKEN_SECRET` y `QR_SIGNING_SECRET`, cada uno con `openssl rand -hex 32`.
+4. Generar `PEDIDO_TOKEN_SECRET` y `QR_SIGNING_SECRET`, cada uno con `openssl rand -hex 32`. `PAGO_ALIAS` ya viene con `nevadaoncativo`.
+   Los comprobantes de transferencia se guardan en **Storage**, en un lugar privado llamado `comprobantes` que la página crea sola con el primer comprobante (no hace falta tocar nada).
 5. En **Authentication → Sign In / Providers**: dejar habilitado **Email**, **desactivar «Allow new users to sign up»** (los RRPP piden acceso desde `/ingresar`, que crea el usuario desde el servidor; nadie se registra por su cuenta) y desactivar «Confirm email».
 6. En **Authentication → Multi-Factor**: dejar habilitado **TOTP** (app autenticadora), que viene activado por defecto.
 7. Crear tu usuario de admin: **Authentication → Users → Add user** (mail y contraseña), copiar su `UID` y en el SQL Editor:

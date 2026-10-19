@@ -45,7 +45,7 @@ for f in supabase/migrations/*.sql; do
 done
 
 echo "▸ Pruebas"
-for t in supabase/tests/pedidos_y_seguridad.sql supabase/tests/invitaciones_y_rrpp.sql supabase/tests/admin.sql supabase/tests/puerta.sql; do
+for t in supabase/tests/pedidos_y_seguridad.sql supabase/tests/invitaciones_y_rrpp.sql supabase/tests/admin.sql supabase/tests/puerta.sql supabase/tests/transferencia.sql; do
   "${PSQL[@]}" -f "$t" 2>&1 | sed 's/^psql:[^ ]* NOTICE:  /  /' | grep -v '^$'
 done
 

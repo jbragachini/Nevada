@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState, useTransition } from "react";
 import { crearPedido } from "@/app/actions/pedidos";
+import { FlechaGl } from "@/components/FlechaGl";
 import { formatARS } from "@/lib/format";
 import { buyerSchema } from "@/lib/pedido-schema";
 import type { StorefrontRrpp, StorefrontTicket } from "@/lib/storefront";
@@ -13,8 +14,8 @@ type Props = {
   rrpps: StorefrontRrpp[];
   /** RRPP preseleccionado desde el link personal (?rrpp=codigo). */
   initialRrppId?: string;
-  /** "prueba": registra pedidos sin cobrar (hasta que esté Mercado Pago). null: compra apagada. */
-  checkout: "prueba" | null;
+  /** "transferencia": se paga con una transferencia a Nevada y comprobante. null: compra apagada. */
+  checkout: "transferencia" | null;
   disabledReason?: string;
   /** false: no se muestra «¿Quién te vendió?» (el RRPP del link igual queda asignado). */
   mostrarRrpp?: boolean;
@@ -229,7 +230,7 @@ export function TicketForm({
                     onClick={() => change(t, 1)}
                     disabled={q >= max || pending}
                     aria-label={`Agregar una ${t.nombre}`}
-                    className="grid h-11 w-11 place-items-center rounded-full bg-deep text-white transition-colors hover:bg-blue disabled:opacity-30"
+                    className="grid h-11 w-11 place-items-center rounded-full bg-ice text-night transition-colors hover:bg-white disabled:opacity-30"
                   >
                     <StepIcon plus />
                   </button>
@@ -313,7 +314,7 @@ export function TicketForm({
               aria-describedby={errors.rrpp ? "rrpp-error" : "rrpp-ayuda"}
               className={`${field} appearance-none pr-10`}
             >
-              <option value="">Nadie, compro directo</option>
+              <option value="" aria-label="Nadie, compro directo"></option>
               {rrpps.map((r) => (
                 <option key={r.id} value={r.id}>
                   {r.nombre}
@@ -342,7 +343,7 @@ export function TicketForm({
       )}
 
       {/* Total + continuar */}
-      <div className="flex flex-col gap-3 rounded-2xl bg-night px-5 py-5 text-white">
+      <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-[#01060e]/60 px-5 py-5 text-white">
         <div className="flex items-baseline justify-between">
           <span className="text-sm text-ice">
             {totalUnidades === 0
@@ -358,23 +359,17 @@ export function TicketForm({
           </p>
         )}
 
-        <button
-          type="submit"
-          disabled={!checkout || pending}
-          aria-busy={pending}
-          className="flex min-h-13 items-center justify-center gap-3 rounded-xl text-balance bg-ice px-4 py-3.5 text-base font-extrabold uppercase tracking-[0.12em] text-night transition-colors hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ice disabled:cursor-not-allowed disabled:bg-[#5d7fa3] disabled:text-[#e3eefa] aria-busy:disabled:cursor-progress aria-busy:disabled:bg-ice/80 aria-busy:disabled:text-night"
-        >
-          {pending && <Spinner />}
-          {pending
-            ? "Registrando pedido…"
-            : checkout === "prueba"
-              ? "Registrar pedido de prueba"
-              : "Pagar con Mercado Pago"}
+        <button type="submit" disabled={!checkout || pending} aria-busy={pending} className="gl w-full">
+          <span className="flex items-center gap-3">
+            {pending && <Spinner />}
+            {pending ? "Creando tu pedido…" : "Pagar"}
+          </span>
+          <FlechaGl />
         </button>
 
-        {checkout === "prueba" ? (
+        {checkout ? (
           <p className="text-center text-xs leading-relaxed text-ice">
-            Modo prueba: no se cobra nada. El pedido queda esperando el pago y se libera a los 30 minutos.
+            Pagás con una transferencia a Nevada, sin costo extra. Te guardamos las entradas por 60 minutos.
           </p>
         ) : (
           disabledReason && <p className="text-center text-xs text-ice">{disabledReason}</p>

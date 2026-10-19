@@ -6,6 +6,7 @@ import { getEventoActual, getEventos, getRrpps, getVentas, type FiltroVentas } f
 
 const COMO: Record<string, string> = {
   mercadopago: "Web · Mercado Pago",
+  transferencia_web: "Web · transferencia a Nevada",
   efectivo_rrpp: "RRPP · efectivo",
   transferencia_rrpp: "RRPP · transferencia al RRPP",
   transferencia_nevada: "RRPP · transferencia a Nevada",

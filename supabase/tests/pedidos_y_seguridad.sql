@@ -131,9 +131,9 @@ select * from public.crear_pedido_web(
 
 select pruebas.igual('el total se calcula con los precios de la base', (select total from r), 50000);
 select pruebas.igual('el número de pedido es NEV-000001', (select numero from r), 'NEV-000001');
-select pruebas.igual('queda pendiente de pago con plazo de 30 minutos',
+select pruebas.igual('queda pendiente de pago con plazo de 60 minutos (transferencia)',
   (select status || ':' || (extract(epoch from vence_en - creado_en) / 60)::int
-   from public.orders where id = (select order_id from r)), 'pendiente_pago:30');
+   from public.orders where id = (select order_id from r)), 'pendiente_pago:60');
 select pruebas.igual('el mail se guarda limpio y en minúsculas',
   (select comprador_email || '|' || comprador_nombre from public.orders where id = (select order_id from r)),
   'ana@example.com|Ana');

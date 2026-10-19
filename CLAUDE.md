@@ -136,7 +136,7 @@ Next.js 15 (App Router) · TypeScript · Tailwind 4 · Supabase (Postgres + Auth
   - `crear_pedido_web()` (solo `service_role`): valida evento, ventas abiertas, tipos, cantidades y RRPP; calcula el total con los precios de la base; reserva cupo bloqueando los tipos (no sobrevende); es idempotente por `idempotency_key`; limita pedidos por IP y por mail. Lo vendido se calcula desde los pedidos (`ticket_type_ocupacion`); una compra web sin pagar reserva 30 minutos (`vence_en`).
   - Link privado `/pedido/[token]`: token = HMAC(`PEDIDO_TOKEN_SECRET`, clave de idempotencia); a la base llega solo su SHA-256 (`pedido_por_token()`). Sin indexar y sin Referer.
   - Server action `src/app/actions/pedidos.ts`; errores `NEV:código` de la base traducidos al comprador.
-  - `PEDIDOS_DE_PRUEBA=true` habilita «Registrar pedido de prueba» (sin cobro) hasta la etapa 5; nunca en la producción de Vercel.
+  - (Reemplazado en la migración 0011: la compra web se paga por transferencia con comprobante; ya no hay modo de prueba.)
   - Pruebas: `scripts/probar-base.sh` (PostgreSQL local con una imitación mínima de Supabase): permisos, cupo, idempotencia, límites, vencimientos y 10 compras simultáneas por la última entrada.
 - Documentación completa en `docs/`.
 
@@ -163,10 +163,16 @@ Next.js 15 (App Router) · TypeScript · Tailwind 4 · Supabase (Postgres + Auth
   - Migración `0010_portada.sql`: `events.portada` (`a | c`, por defecto `a`), en la vista pública y en `admin_editar_evento` / `admin_duplicar_evento`. Se elige en Admin → Eventos → el evento. `/?portada=a|c` muestra una u otra sin cambiar la elegida.
   - «Comprar» baja a la compra; con palabra clave abre una ventana (`BotonComprar.tsx`, `<dialog>`) que la verifica en la base y la comparte con el formulario (`ClaveCompartida.tsx`).
 
+- **Pago por transferencia y estilo de la portada A** (pedido de Joaquín: sin comisión):
+  - Migración `0011_pago_transferencia.sql`: método `transferencia_web`, reserva de 60 minutos, `registrar_comprobante()` (solo service_role; pasa a `por_confirmar`; acepta vencidos si queda cupo; rechaza el mismo archivo por su SHA-256 único en `payments.comprobante_sha256`), `pedido_por_token` devuelve `metodo`.
+  - `src/app/api/comprobante/route.ts`: recibe el archivo, controla tipo real (bytes) y 5 MB, lo guarda en el Storage privado `comprobantes` (se crea solo) y llama a la base. `PagoTransferencia.tsx`: monto, alias con «Copiar», subir comprobante (las fotos se achican en el celular) y «Pagado» (apagado hasta subirlo). En «Por aprobar» el admin ve el comprobante con un link firmado de 10 minutos.
+  - Estilo de la portada A en todo: fondo `.fondo-noche` (fotos nuevas de la A), `.tema-noche` (vidrio oscuro; los colores «sobre blanco» se remapean), botón de vidrio `.gl` + `FlechaGl`, títulos en Montserrat mayúscula. «¿Quién te vendió?» arranca en blanco; la palabra clave de la portada baja directo a las entradas.
+
 **Siguiente, en orden** (ver la tabla de etapas en ARQUITECTURA):
-1. **Etapa 5:** Mercado Pago Checkout Pro y webhook. La preferencia tiene que vencer junto con la reserva (`vence_en`, 30 minutos) y excluir medios de pago diferidos (Rapipago, Pago Fácil); un pago que llegue con el pedido ya vencido se acepta solo si queda cupo, y si no, se devuelve.
-2. **Etapa 6:** entradas por mail (QR, PDF con diseño Nevada, Resend).
-3. **Etapa 8:** pruebas de permisos, revisión de RLS y despliegue.
+1. **Poner online gratis:** Supabase (migraciones 0001–0011) y Vercel con dirección `*.vercel.app`; el dominio se compra después (NIC, `.com.ar`).
+2. **Etapa 6:** entradas por mail (QR + PDF con el diseño del prototipo, Resend).
+3. **Pendientes acordados:** leer el número de operación de los comprobantes (OCR gratis) y rechazar los repetidos; nombre de cada persona en la compra (opcional) y estimación chicas/chicos por nombre (solo totales); código a mano por nombre (`martina1`, falta confirmar el formato).
+4. **Etapa 8:** pruebas de permisos, revisión de RLS y despliegue. Mercado Pago con comisión queda descartado por ahora.
 
 Trabajá por etapas, mostrando el avance, y cada etapa en commits claros.
 

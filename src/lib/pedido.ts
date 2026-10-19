@@ -14,6 +14,8 @@ export type EstadoPedido =
 export type Pedido = {
   numero: string;
   status: EstadoPedido;
+  /** Cómo se paga: "transferencia_web" muestra el alias y la subida del comprobante. */
+  metodo: string;
   total: number;
   compradorNombre: string;
   compradorEmail: string;
@@ -28,6 +30,7 @@ export type Pedido = {
 type Row = {
   numero: string;
   status: EstadoPedido;
+  metodo: string;
   total: number;
   comprador_nombre: string;
   comprador_email: string;
@@ -53,6 +56,7 @@ export async function getPedido(token: string): Promise<Pedido | null> {
   return {
     numero: r.numero,
     status: r.status,
+    metodo: r.metodo,
     total: r.total,
     compradorNombre: r.comprador_nombre,
     compradorEmail: r.comprador_email,

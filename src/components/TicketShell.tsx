@@ -2,8 +2,8 @@ import { Mountain } from "@/components/NevadaLogo";
 import { Snowfall } from "@/components/Snowfall";
 
 /**
- * Marco común de las pantallas del comprador: fondo noche con nieve, tarjeta tipo ticket con
- * encabezado azul, perforación y cuerpo blanco.
+ * Marco común de las pantallas del comprador, con el estilo de la portada: el camino a la
+ * montaña de fondo, nieve y una tarjeta de vidrio con el encabezado del evento arriba.
  */
 export function TicketShell({
   id,
@@ -25,6 +25,7 @@ export function TicketShell({
       tabIndex={id ? -1 : undefined}
       className="relative flex min-h-dvh flex-col items-center px-4 pb-16 pt-8 outline-none sm:pt-14"
     >
+      <div className="fondo-noche" aria-hidden="true" />
       <Snowfall />
 
       {aviso && (
@@ -36,14 +37,11 @@ export function TicketShell({
         </div>
       )}
 
-      <section className="relative z-10 w-full max-w-md">
-        <div className="overflow-hidden rounded-t-[28px] bg-gradient-to-b from-deep to-night px-6 pb-8 pt-9 text-center ring-1 ring-white/10">
-          {head}
-        </div>
-
-        <div className="rounded-b-[28px] bg-white pb-6 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)]">
-          <div className="ticket-perforation" />
-          <div className="px-5 pt-7 sm:px-7">{children}</div>
+      <section className="tema-noche relative z-10 w-full max-w-md">
+        <div className="vidrio overflow-hidden rounded-[28px]">
+          <div className="px-6 pb-7 pt-9 text-center">{head}</div>
+          <div className="mx-6 h-px bg-white/12" />
+          <div className="px-5 pb-6 pt-7 sm:px-7">{children}</div>
         </div>
 
         <footer className="mt-8 flex flex-col items-center gap-2 text-center text-xs text-ice/80">

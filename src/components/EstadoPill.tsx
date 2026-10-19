@@ -37,7 +37,7 @@ export function EstadoPill({
   })();
   return (
     <span
-      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-[0.06em] ${clase}`}
+      className={`pill-estado inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-[0.06em] ${clase}`}
     >
       <span aria-hidden="true" className="h-[7px] w-[7px] rounded-full bg-current" />
       {texto}

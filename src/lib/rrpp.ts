@@ -42,7 +42,7 @@ export type Venta = {
   numero: string;
   comprador: string;
   origen: "web" | "rrpp";
-  metodo: "mercadopago" | "efectivo_rrpp" | "transferencia_rrpp" | "transferencia_nevada";
+  metodo: "mercadopago" | "transferencia_web" | "efectivo_rrpp" | "transferencia_rrpp" | "transferencia_nevada";
   status: string;
   total: number;
   creadoEn: string;

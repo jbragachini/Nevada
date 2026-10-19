@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { verificarInvitacion } from "@/app/actions/pedidos";
 import { TicketForm } from "@/components/TicketForm";
+import { FlechaGl } from "@/components/FlechaGl";
 
 type FormProps = Omit<React.ComponentProps<typeof TicketForm>, "invitado">;
 
@@ -117,9 +118,10 @@ export function InvitacionGate(props: FormProps) {
         type="submit"
         disabled={pending}
         aria-busy={pending}
-        className="flex min-h-12 items-center justify-center rounded-xl bg-deep px-4 py-3 text-sm font-extrabold uppercase tracking-[0.12em] text-white transition-colors hover:bg-blue focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue disabled:cursor-progress disabled:opacity-80"
+        className="gl w-full"
       >
-        {pending ? "Buscando tu invitación…" : "Ver mi invitación"}
+        <span>{pending ? "Buscando tu invitación…" : "Ver mi invitación"}</span>
+        <FlechaGl />
       </button>
     </form>
   );

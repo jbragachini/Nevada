@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { NevadaLogo } from "@/components/NevadaLogo";
 import { TicketShell } from "@/components/TicketShell";
+import { FlechaGl } from "@/components/FlechaGl";
 
 export default function PedidoNoEncontrado() {
   return (
@@ -19,9 +20,10 @@ export default function PedidoNoEncontrado() {
         </p>
         <Link
           href="/"
-          className="mt-2 flex min-h-12 w-full items-center justify-center rounded-xl bg-deep px-4 py-3 text-sm font-extrabold uppercase tracking-[0.12em] text-white transition-colors hover:bg-blue focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue"
+          className="mt-2 gl w-full"
         >
-          Ir a las entradas
+          <span>Ir a las entradas</span>
+          <FlechaGl />
         </Link>
       </div>
     </TicketShell>

@@ -11,6 +11,7 @@ const COMO: Record<Venta["metodo"], string> = {
   transferencia_rrpp: "Cargada por vos · transferencia a vos · la rendís",
   transferencia_nevada: "Cargada por vos · transferencia a Nevada · no rendís",
   mercadopago: "Compró en la web y pagó a Nevada · no rendís, cobrás comisión",
+  transferencia_web: "Compró en la web y transfirió a Nevada · no rendís, cobrás comisión",
 };
 
 export function VentasList({ ventas, porAprobar }: { ventas: Venta[]; porAprobar: number }) {
