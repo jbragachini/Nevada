@@ -14,7 +14,11 @@ export type StorefrontEvent = {
   acceso: "publico" | "lista" | "clave";
   /** Mostrar «¿Quién te vendió?». Oculto, el link ?rrpp= igual asigna la venta. */
   mostrarRrpp: boolean;
+  /** Portada de la página de venta: "a" camino hacia la montaña, "c" contraluz azul. */
+  portada: Portada;
 };
+
+export type Portada = "a" | "c";
 
 export type StorefrontTicket = {
   id: string;
@@ -50,6 +54,7 @@ const PREVIEW: { event: StorefrontEvent; tickets: StorefrontTicket[]; rrpps: Sto
     ventasAbiertas: true,
     acceso: "publico",
     mostrarRrpp: true,
+    portada: "a",
   },
   tickets: [
     {
@@ -83,7 +88,7 @@ export async function getStorefront(): Promise<Storefront> {
 
   const { data: ev, error: evErr } = await supabase
     .from("storefront_event")
-    .select("id,nombre,subtitulo,fecha_inicio,lugar,direccion,ciudad,ventas_abiertas,acceso,mostrar_rrpp")
+    .select("id,nombre,subtitulo,fecha_inicio,lugar,direccion,ciudad,ventas_abiertas,acceso,mostrar_rrpp,portada")
     .maybeSingle();
 
   if (evErr) return { mode: "error", message: evErr.message };
@@ -117,6 +122,7 @@ export async function getStorefront(): Promise<Storefront> {
       ventasAbiertas: ev.ventas_abiertas,
       acceso: ev.acceso === "lista" || ev.acceso === "clave" ? ev.acceso : "publico",
       mostrarRrpp: ev.mostrar_rrpp,
+      portada: ev.portada === "c" ? "c" : "a",
     },
     tickets: (tt ?? []).map((t) => ({
       id: t.id,

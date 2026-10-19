@@ -106,6 +106,7 @@ const accesoSchema = z
     acceso: z.enum(["publico", "lista", "clave"]),
     clave_acceso: z.string().trim().max(40).optional().default(""),
     mostrar_rrpp: z.boolean(),
+    portada: z.enum(["a", "c"]),
   })
   .refine((d) => d.acceso !== "clave" || d.clave_acceso.length >= 4, {
     message: "La palabra clave tiene que tener al menos 4 caracteres",

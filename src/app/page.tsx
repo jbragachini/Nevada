@@ -1,11 +1,15 @@
+import { ClaveCompartida } from "@/components/ClaveCompartida";
 import { ClaveGate } from "@/components/ClaveGate";
 import { EventHeader } from "@/components/EventHeader";
 import { InvitacionGate } from "@/components/InvitacionGate";
 import { NevadaLogo } from "@/components/NevadaLogo";
+import { BotonComprar } from "@/components/portada/BotonComprar";
+import { Portada } from "@/components/portada/Portada";
 import { TicketForm } from "@/components/TicketForm";
 import { TicketShell } from "@/components/TicketShell";
 import { getCheckout } from "@/lib/checkout";
-import { getStorefront } from "@/lib/storefront";
+import { formatDiaPortada } from "@/lib/format";
+import { getStorefront, type Portada as VariantePortada } from "@/lib/storefront";
 
 // Precios, cupos y estado de ventas cambian desde el admin: no cachear.
 export const dynamic = "force-dynamic";
@@ -13,37 +17,64 @@ export const dynamic = "force-dynamic";
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ rrpp?: string }>;
+  searchParams: Promise<{ rrpp?: string; portada?: string }>;
 }) {
   const sf = await getStorefront();
-  const { rrpp } = await searchParams;
+  const { rrpp, portada } = await searchParams;
+  const conEvento = sf.mode === "live" || sf.mode === "preview";
+
+  // La portada la elige el admin; ?portada=a|c deja ver la otra sin cambiarla.
+  const variante: VariantePortada =
+    portada === "a" || portada === "c" ? portada : conEvento ? sf.event.portada : "a";
+  const linea = conEvento
+    ? [
+        sf.event.nombre.replace(/\s+20\d\d$/, ""),
+        formatDiaPortada(sf.event.fechaInicio),
+        sf.event.ciudad.split(",")[0],
+      ].join(" · ")
+    : "Navidad con Nevada 2026";
+  const abiertas = conEvento && sf.event.ventasAbiertas;
 
   return (
-    <TicketShell
-      aviso={
-        sf.mode === "preview" && (
-          <>
-            <strong className="font-bold">Vista previa:</strong> la base de datos todavía no está
-            conectada. Precios y datos son de ejemplo y la compra está deshabilitada.
-          </>
-        )
-      }
-      head={
-        <>
-          <div className="flex justify-center">
-            <NevadaLogo height={118} />
-          </div>
-          {sf.mode === "live" || sf.mode === "preview" ? (
+    <ClaveCompartida>
+      <Portada
+        variante={variante}
+        linea={linea}
+        boton={
+          <BotonComprar
+            eventId={conEvento ? sf.event.id : ""}
+            pideClave={abiertas && sf.event.acceso === "clave" && sf.mode === "live"}
+            texto={abiertas ? "Comprar" : "Ver más"}
+          />
+        }
+      />
+      <TicketShell
+        id="comprar"
+        aviso={
+          sf.mode === "preview" && (
+            <>
+              <strong className="font-bold">Vista previa:</strong> la base de datos todavía no está
+              conectada. Precios y datos son de ejemplo y la compra está deshabilitada.
+            </>
+          )
+        }
+        head={
+          conEvento ? (
             <EventHeader event={sf.event} />
           ) : (
-            <p className="mt-6 display text-2xl">NAVIDAD CON NEVADA 2026</p>
-          )}
-        </>
-      }
-      footer={<p>Las entradas se envían por correo con un QR único por persona.</p>}
-    >
-      <Body sf={sf} rrppCode={rrpp} />
-    </TicketShell>
+            <>
+              <div className="flex justify-center">
+                <NevadaLogo height={96} />
+              </div>
+              <p className="mt-6 display text-2xl">NAVIDAD CON NEVADA 2026</p>
+            </>
+          )
+        }
+        footer={<p>Las entradas se envían por correo con un QR único por persona.</p>}
+      >
+        <Body sf={sf} rrppCode={rrpp} />
+      </TicketShell>
+    </ClaveCompartida>
   );
 }
 

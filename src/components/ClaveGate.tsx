@@ -2,17 +2,22 @@
 
 import { useRef, useState, useTransition } from "react";
 import { verificarClave } from "@/app/actions/pedidos";
+import { useClaveCompartida } from "@/components/ClaveCompartida";
 import { TicketForm } from "@/components/TicketForm";
 
 type FormProps = Omit<React.ComponentProps<typeof TicketForm>, "clave" | "invitado">;
 
 /**
  * Evento con palabra clave: primero la palabra. Si es correcta, muestra el formulario de compra
- * y la manda con el pedido para que la base la vuelva a controlar.
+ * y la manda con el pedido para que la base la vuelva a controlar. Si ya se escribió en la portada,
+ * va directo al formulario.
  */
 export function ClaveGate(props: FormProps) {
   const [clave, setClave] = useState("");
-  const [aceptada, setAceptada] = useState<string | null>(null);
+  const compartida = useClaveCompartida();
+  const [local, setLocal] = useState<string | null>(null);
+  const aceptada = compartida ? compartida.clave : local;
+  const setAceptada = compartida ? compartida.aceptar : setLocal;
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);

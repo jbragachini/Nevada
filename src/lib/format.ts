@@ -74,3 +74,13 @@ export function formatFechaHora(iso: string): string {
     timeZone: TZ,
   }).format(new Date(iso));
 }
+
+/** Día de la semana y fecha corta de Córdoba, para la portada: «Jueves 24.12». */
+export function formatDiaPortada(iso: string): string {
+  const p = Object.fromEntries(
+    new Intl.DateTimeFormat("es-AR", { weekday: "long", day: "2-digit", month: "2-digit", timeZone: TZ })
+      .formatToParts(new Date(iso))
+      .map((x) => [x.type, x.value]),
+  );
+  return `${p.weekday.charAt(0).toUpperCase()}${p.weekday.slice(1)} ${p.day}.${p.month}`;
+}

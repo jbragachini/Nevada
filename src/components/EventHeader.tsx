@@ -8,7 +8,7 @@ export function EventHeader({
 }) {
   const f = formatEventDate(event.fechaInicio);
   return (
-    <div className="mt-7">
+    <div>
       <h1 className="display text-[28px] leading-none text-balance sm:text-[32px]">{event.nombre.toUpperCase()}</h1>
       {event.subtitulo && (
         <p className="mt-3 text-[13px] font-semibold uppercase tracking-[0.22em] text-ice">

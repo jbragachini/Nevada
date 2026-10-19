@@ -81,10 +81,20 @@ select pruebas.igual('se edita acceso, clave y «¿Quién te vendió?»',
     '{"acceso": "clave", "clave_acceso": "Año Nuevo", "mostrar_rrpp": false, "lugar": "Club Social Oncativo"}')$$,
     (select id from ev))) || ':' || pruebas.q($q$select acceso || '|' || clave_acceso || '|' || mostrar_rrpp || '|' || lugar from public.events where id = (select id from ev)$q$),
   'ok:clave|Año Nuevo|false|Club Social Oncativo');
+select pruebas.igual('la portada empieza en A y se cambia a C',
+  pruebas.q($q$select portada from public.events where id = (select id from ev)$q$) || ':' ||
+  pruebas.admin(format($$select public.admin_editar_evento(%L, '{"portada": "c"}')$$, (select id from ev))) || ':' ||
+  pruebas.q($q$select portada from public.events where id = (select id from ev)$q$),
+  'a:ok:c');
+select pruebas.igual('solo hay portadas A y C',
+  pruebas.admin(format($$select public.admin_editar_evento(%L, '{"portada": "b"}')$$, (select id from ev))),
+  '23514');
 
 select pruebas.igual('poner un evento en la página saca al anterior',
   pruebas.admin(format($$select public.admin_estado_evento(%L, true, true)$$, (select id from ev))) || ':' || pruebas.q($q$select nombre from public.storefront_event$q$) || ':' || pruebas.q($q$select count(*) from public.events where publicado$q$),
   'ok:Fin de Año Nevada:1');
+select pruebas.igual('la página pública ve qué portada usar',
+  pruebas.valor($$select portada from public.storefront_event$$, 'anon'), 'c');
 select pruebas.igual('y se puede volver a poner el original',
   pruebas.admin(format($$select public.admin_estado_evento(%L, true, null)$$,
     (select id from public.events where nombre = 'Navidad con Nevada 2026'))) || ':' || pruebas.q($q$select nombre from public.storefront_event$q$),
@@ -97,8 +107,9 @@ create temp table dup as
 select pruebas.admin_valor(format($$select public.admin_duplicar_evento(%L)::text$$, (select id from ev)))::uuid as id;
 select pruebas.igual('duplicar copia datos y tipos, como borrador',
   (select e.nombre || ':' || e.publicado || ':' || (select count(*) from public.ticket_types t where t.event_id = e.id)
+          || ':' || e.portada
    from public.events e where e.id = (select id from dup)),
-  'Fin de Año Nevada (copia):false:2');
+  'Fin de Año Nevada (copia):false:2:c');
 select pruebas.igual('un evento sin ventas se puede eliminar',
   pruebas.admin(format($$select public.admin_eliminar_evento(%L)$$, (select id from dup))) || ':' || pruebas.q($q$select count(*) from public.events where id = (select id from dup)$q$), 'ok:0');
 select pruebas.igual('un evento con ventas no se elimina',

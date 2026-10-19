@@ -15,6 +15,7 @@ type Valores = {
   acceso: "publico" | "lista" | "clave";
   clave_acceso: string;
   mostrar_rrpp: boolean;
+  portada: "a" | "c";
 };
 
 const ACCESOS: { id: Valores["acceso"]; titulo: string; ayuda: string }[] = [
@@ -25,6 +26,11 @@ const ACCESOS: { id: Valores["acceso"]; titulo: string; ayuda: string }[] = [
     ayuda: "Solo compra quien está en la lista (por mail), hasta su máximo de entradas. La arman Nevada y los RRPP.",
   },
   { id: "clave", titulo: "Palabra clave", ayuda: "Solo compra quien sabe la palabra. No importan mayúsculas ni acentos." },
+];
+
+const PORTADAS: { id: Valores["portada"]; titulo: string; foto: string }[] = [
+  { id: "a", titulo: "A · Camino a la montaña", foto: "/portadas/a-escritorio.jpg" },
+  { id: "c", titulo: "C · Contraluz azul", foto: "/portadas/c-escritorio.jpg" },
 ];
 
 /** Datos del evento. Sin id crea uno nuevo (borrador); con id edita, incluido el acceso. */
@@ -151,6 +157,40 @@ export function EventoForm({ id, inicial }: { id?: string; inicial: Valores }) {
               </span>
             </span>
           </label>
+          <fieldset className="flex flex-col gap-2">
+            <legend className={`${etiqueta} mb-1`}>Portada de la página</legend>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {PORTADAS.map((p) => (
+                <label
+                  key={p.id}
+                  className={`flex cursor-pointer flex-col gap-2 rounded-2xl border p-2.5 transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-blue ${
+                    v.portada === p.id ? "border-blue bg-frost" : "border-line hover:border-blue/50"
+                  }`}
+                >
+                  <span
+                    aria-hidden="true"
+                    className="aspect-[16/10] w-full rounded-xl bg-night bg-cover bg-center"
+                    style={{ backgroundImage: `url(${p.foto})` }}
+                  />
+                  <span className="flex items-center gap-2 px-1 text-sm font-bold">
+                    <input
+                      type="radio"
+                      name="portada"
+                      value={p.id}
+                      checked={v.portada === p.id}
+                      onChange={() => set("portada", p.id)}
+                      className="h-4 w-4 accent-[var(--deep)]"
+                    />
+                    {p.titulo}
+                  </span>
+                </label>
+              ))}
+            </div>
+            <p className="text-xs text-muted">
+              Para ver cómo queda cada una sin cambiarla: <span className="font-mono">/?portada=a</span> o{" "}
+              <span className="font-mono">/?portada=c</span>.
+            </p>
+          </fieldset>
         </>
       )}
 

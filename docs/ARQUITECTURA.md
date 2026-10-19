@@ -76,7 +76,7 @@ access_requests     id, nombre, usuario, whatsapp, estado [pendiente|aprobada|re
 events              id, nombre, subtitulo (DJ), fecha_inicio, lugar, direccion, ciudad, descripcion,
                     publicado (es el evento de la página de venta; solo uno a la vez), ventas_abiertas,
                     acceso [publico|lista|clave], clave_acceso (palabra clave),
-                    mostrar_rrpp («¿Quién te vendió?» visible),
+                    mostrar_rrpp («¿Quién te vendió?» visible), portada [a|c] (portada de la página),
                     flyer_path (Storage público, imagen reducida),
                     creado_por, actualizado_por, actualizado_en
                     (se pueden crear, editar y duplicar; se eliminan solo si no tienen ventas)
@@ -150,7 +150,7 @@ audit_log           id, actor_id, accion, entidad, entidad_id, antes (jsonb),
 ## 3. Pantallas
 
 ### Públicas
-1. **/** — Venta del **único evento que está en la página** (el admin elige cuál; poner uno reemplaza al anterior): fondo azul noche con nieve sutil, tarjeta blanca central tipo ticket, logo Nevada, evento, fecha y lugar. Tipos de entrada con precio y selector de cantidad, datos del comprador, **«¿Quién te vendió?» (RRPP, opcional)** para asignar la comisión, total y botón «Pagar con Mercado Pago». Cada RRPP tiene un link personal (`/?rrpp=codigo`) que lo deja preseleccionado. Mensaje claro si las ventas están cerradas o agotadas.
+1. **/** — Venta del **único evento que está en la página** (el admin elige cuál; poner uno reemplaza al anterior). Abre con una **portada a pantalla completa** (A: camino hacia la montaña, C: contraluz azul; el admin elige cuál) con el botón «Comprar», que baja a la compra (o pide la palabra clave en una ventana). Debajo: fondo azul noche con nieve sutil, tarjeta blanca central tipo ticket, logo Nevada, evento, fecha y lugar. Tipos de entrada con precio y selector de cantidad, datos del comprador, **«¿Quién te vendió?» (RRPP, opcional)** para asignar la comisión, total y botón «Pagar con Mercado Pago». Cada RRPP tiene un link personal (`/?rrpp=codigo`) que lo deja preseleccionado. Mensaje claro si las ventas están cerradas o agotadas.
 2. **/pedido/[token privado]** — Seguimiento del comprador, sin cuenta: al pagar ve la confirmación con su número de pedido, y el mail trae este link privado para ver el estado y descargar las entradas cuando quiera. Estados: «pago en verificación», «pagado, esperando aprobación», «aprobado: entradas enviadas» o «rechazado». El estado sale del servidor, no del regreso del cliente.
 3. **/entradas/[token]** — Descarga de las entradas (link privado enviado por mail).
 

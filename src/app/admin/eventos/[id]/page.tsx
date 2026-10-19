@@ -59,6 +59,7 @@ export default async function EditarEventoPage({ params }: { params: Promise<{ i
               acceso: evento.acceso,
               clave_acceso: evento.claveAcceso ?? "",
               mostrar_rrpp: evento.mostrarRrpp,
+              portada: evento.portada,
             }}
           />
         </Card>

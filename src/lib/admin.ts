@@ -27,6 +27,7 @@ export type EventoFila = {
   acceso: "publico" | "lista" | "clave";
   claveAcceso: string | null;
   mostrarRrpp: boolean;
+  portada: "a" | "c";
 };
 
 type EventoRow = {
@@ -43,10 +44,11 @@ type EventoRow = {
   acceso: EventoFila["acceso"];
   clave_acceso: string | null;
   mostrar_rrpp: boolean;
+  portada: "a" | "c";
 };
 
 const EVENTO_COLS =
-  "id,nombre,subtitulo,fecha_inicio,lugar,direccion,ciudad,descripcion,publicado,ventas_abiertas,acceso,clave_acceso,mostrar_rrpp";
+  "id,nombre,subtitulo,fecha_inicio,lugar,direccion,ciudad,descripcion,publicado,ventas_abiertas,acceso,clave_acceso,mostrar_rrpp,portada";
 
 function evento(r: EventoRow): EventoFila {
   return {
@@ -63,6 +65,7 @@ function evento(r: EventoRow): EventoFila {
     acceso: r.acceso,
     claveAcceso: r.clave_acceso,
     mostrarRrpp: r.mostrar_rrpp,
+    portada: r.portada,
   };
 }
 

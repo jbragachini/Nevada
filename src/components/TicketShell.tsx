@@ -6,18 +6,25 @@ import { Snowfall } from "@/components/Snowfall";
  * encabezado azul, perforación y cuerpo blanco.
  */
 export function TicketShell({
+  id,
   aviso,
   head,
   children,
   footer,
 }: {
+  /** Ancla para bajar desde la portada (recibe el foco al llegar). */
+  id?: string;
   aviso?: React.ReactNode;
   head: React.ReactNode;
   children: React.ReactNode;
   footer?: React.ReactNode;
 }) {
   return (
-    <main className="relative flex min-h-dvh flex-col items-center px-4 pb-16 pt-8 sm:pt-14">
+    <main
+      id={id}
+      tabIndex={id ? -1 : undefined}
+      className="relative flex min-h-dvh flex-col items-center px-4 pb-16 pt-8 outline-none sm:pt-14"
+    >
       <Snowfall />
 
       {aviso && (

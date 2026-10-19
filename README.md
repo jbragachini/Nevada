@@ -15,6 +15,7 @@ Traspaso para Claude Code en [`CLAUDE.md`](CLAUDE.md); demo de referencia en `do
 | 3. Panel de vendedores | ✅ Terminada (`/ingresar` con usuario o mail, pedido de acceso de RRPP pendiente de aprobación, panel con métricas, comisiones, lo que hay que rendir, link personal, ventas con QR, carga de ventas con una persona por entrada, lista de invitados) |
 | Eventos con invitación | ✅ Cada evento es **público**, **con lista de invitados** (por mail, hasta su máximo de entradas) o **con palabra clave**; se puede ocultar «¿Quién te vendió?» |
 | 4. Admin y comisiones | ✅ Terminada (panel `/admin` con doble verificación: resumen, eventos y tipos de entrada, acceso público / lista / palabra clave, por aprobar, ventas por vendedor, comisiones y rendiciones, RRPP y accesos, invitados, entradas y QR, auditoría) |
+| Portada | ✅ Dos portadas a pantalla completa (A: camino a la montaña, C: contraluz azul), para celular y escritorio; el admin elige cuál se ve en cada evento |
 | 7. Puerta | ✅ Terminada (`/admin/puerta`: cámara del celular, resultado grande en color, código corto a mano, contador; validación atómica en la base) |
 | 5, 6 y 8 | ⏳ Pendientes (Mercado Pago, mails con las entradas, revisión final y publicación) |
 
@@ -41,7 +42,7 @@ scripts/probar-base.sh       # aplica todas las migraciones en una base descarta
 ## Configurar Supabase (falta hacerlo)
 
 1. Crear un proyecto en [supabase.com](https://supabase.com).
-2. En **SQL Editor**, pegar y ejecutar en orden todos los archivos de `supabase/migrations/` (`0001_…` a `0009_…`).
+2. En **SQL Editor**, pegar y ejecutar en orden todos los archivos de `supabase/migrations/` (`0001_…` a `0010_…`).
    Crea el evento *Navidad con Nevada 2026* en la página, con las ventas **cerradas** y dos tipos de entrada (General $15.000 y +25 $20.000, cupos 400 y 200, comisión $0: son valores iniciales, se cambian desde el panel).
 3. En **Project Settings → API**, copiar a `.env.local`: `Project URL` → `NEXT_PUBLIC_SUPABASE_URL`, `anon public` → `NEXT_PUBLIC_SUPABASE_ANON_KEY` y `service_role` → `SUPABASE_SERVICE_ROLE_KEY` (esta última es secreta: solo servidor).
 4. Generar `PEDIDO_TOKEN_SECRET` y `QR_SIGNING_SECRET`, cada uno con `openssl rand -hex 32`.

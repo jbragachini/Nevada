@@ -25,6 +25,7 @@ export default function NuevoEventoPage() {
             acceso: "publico",
             clave_acceso: "",
             mostrar_rrpp: true,
+            portada: "a",
           }}
         />
       </Card>

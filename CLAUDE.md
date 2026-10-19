@@ -158,6 +158,10 @@ Next.js 15 (App Router) · TypeScript · Tailwind 4 · Supabase (Postgres + Auth
   - `src/lib/qr.ts` `leerQr()`: verifica la firma HMAC del QR (`timingSafeEqual`) antes de tocar la base; un QR falso se registra como inválido sin buscar la entrada.
   - `/admin/puerta` (`src/components/admin/Escaner.tsx`, `html5-qrcode`, lee el cuadro completo): resultado a pantalla completa en color, vibración y sonido, código corto a mano, contador de ingresos y faltantes. El código corto se muestra debajo de cada QR (comprador y RRPP).
   - Pruebas: `supabase/tests/puerta.sql` y 10 lecturas simultáneas de la misma entrada en `scripts/probar-base.sh` (entra una sola); prueba con navegador usando una cámara simulada con el QR.
+- **Portada de la página de venta** (diseños «Nevada — Portadas (pruebas)»):
+  - `/` abre con una portada a pantalla completa (`src/components/portada/Portada.tsx`, estilos `.pv` en `globals.css`) y abajo la tarjeta de compra (`#comprar`). Dos versiones: **A** camino hacia la montaña y **C** contraluz azul; fotos distintas para celular y escritorio en `public/portadas/`.
+  - Migración `0010_portada.sql`: `events.portada` (`a | c`, por defecto `a`), en la vista pública y en `admin_editar_evento` / `admin_duplicar_evento`. Se elige en Admin → Eventos → el evento. `/?portada=a|c` muestra una u otra sin cambiar la elegida.
+  - «Comprar» baja a la compra; con palabra clave abre una ventana (`BotonComprar.tsx`, `<dialog>`) que la verifica en la base y la comparte con el formulario (`ClaveCompartida.tsx`).
 
 **Siguiente, en orden** (ver la tabla de etapas en ARQUITECTURA):
 1. **Etapa 5:** Mercado Pago Checkout Pro y webhook. La preferencia tiene que vencer junto con la reserva (`vence_en`, 30 minutos) y excluir medios de pago diferidos (Rapipago, Pago Fácil); un pago que llegue con el pedido ya vencido se acepta solo si queda cupo, y si no, se devuelve.
