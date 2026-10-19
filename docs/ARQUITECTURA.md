@@ -59,7 +59,7 @@ Detalle completo en [`SEGURIDAD.md`](SEGURIDAD.md).
 
 ### Estados (independientes entre sí)
 
-- **Pedido** (`orders.status`): `borrador` → `pendiente_pago` → `pagado` → `aprobado` → `emitido` · o `cancelado` / `vencido`
+- **Pedido** (`orders.status`): compra web `pendiente_pago` → `pagado` → `aprobado`; venta de RRPP por transferencia `por_confirmar` → `aprobado`; venta de RRPP en efectivo directo `aprobado` · o `rechazado` / `cancelado` / `vencido` (compra web que no se pagó en 30 minutos: libera el cupo). Al aprobar se emiten las entradas.
 - **Pago** (`payments.status`): `iniciado` → `pendiente` | `acreditado` | `rechazado` | `reembolsado` (lo define Mercado Pago)
 - **Entrada** (`tickets.status`): `valida` → `usada` · o `anulada`
 - **Email** (`email_log.status`): `en_cola` → `enviado` | `fallido`
@@ -80,21 +80,21 @@ events              id, nombre, subtitulo (DJ), fecha_inicio, lugar, direccion, 
                     (se pueden crear, editar y duplicar; se eliminan solo si no tienen ventas)
 
 ticket_types        id, event_id, nombre, descripcion, precio, cupo_total, comision_rrpp,
-                    vendidas (calculado), en_venta, orden
+                    max_por_compra, en_venta, orden
+                    (lo vendido no se guarda: se calcula desde los pedidos en ticket_type_ocupacion)
                     (tipos libres por evento: General, +25, VIP, preventa…; un tipo con ventas
                     no se borra, se pasa a en_venta = false; el cupo no baja de lo vendido)
 
 sellers             id, profile_id, codigo_promotor (para link ?ref=), puede_cargar_ventas, activo
 
-commission_rules    id, event_id, ticket_type_id, seller_id (null = regla general),
-                    monto_fijo (pesos por entrada), vigente_desde
-
 orders              id, event_id, numero (NEV-000123), comprador_nombre, comprador_email,
                     comprador_whatsapp, seller_id (null = venta directa),
                     origen [web|promotor], metodo_pago [mercadopago|efectivo_rrpp|transferencia_rrpp|transferencia_nevada],
-                    total, status, idempotency_key (único), creado_en
+                    total, status, vence_en, idempotency_key (único), token_hash (link privado),
+                    ip_hash, creado_por, revisado_por, motivo_rechazo, creado_en
 
-order_items         id, order_id, ticket_type_id, cantidad, precio_unitario, subtotal
+order_items         id, order_id, ticket_type_id, cantidad, precio_unitario, comision_unitaria, subtotal
+                    (precio y comisión congelados al momento de la venta)
 
 order_attendees     id, order_id, order_item_id, nombre, email (ventas de RRPP: una fila por persona)
 

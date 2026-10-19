@@ -34,3 +34,13 @@ export function formatEventDate(iso: string): { dia: string; hora: string; corta
     .toUpperCase();
   return { dia: dia.charAt(0).toUpperCase() + dia.slice(1), hora, corta };
 }
+
+/** Hora en Córdoba, «23:41». */
+export function formatHora(iso: string): string {
+  return new Intl.DateTimeFormat("es-AR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: TZ,
+  }).format(new Date(iso));
+}

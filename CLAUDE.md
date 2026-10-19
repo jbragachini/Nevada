@@ -11,6 +11,8 @@ Este archivo es el traspaso del proyecto para Claude Code. Leelo completo antes 
 
 **No simular pagos, envíos de mails ni validaciones.** Lo que dependa de una cuenta que todavía no existe (Supabase, Mercado Pago, Resend) queda deshabilitado y marcado como «falta configurar». Separar siempre lo terminado de lo que requiere configuración. Nunca contraseñas en texto plano ni claves privadas en el navegador.
 
+**Cada tabla o vista nueva:** activar RLS y quitarle permisos a `anon` (Supabase les da todos por defecto; una vista simple acepta escrituras). Cada función nueva con `security definer`: `set search_path = ''` y `revoke execute … from public, anon, authenticated`. Agregar la prueba en `supabase/tests/` y correr `scripts/probar-base.sh`.
+
 ## La referencia visual y funcional: la demo
 
 `docs/demo/nevada-demo.html` es una demo interactiva en un solo archivo (JS puro, datos en localStorage) que Joaquín ya probó y aprobó. **Es la especificación de cómo tiene que verse y comportarse la plataforma real.** Abrila en el navegador.
@@ -118,20 +120,23 @@ Next.js 15 (App Router) · TypeScript · Tailwind 4 · Supabase (Postgres + Auth
   - diseño Nevada, tipos de entrada, datos del comprador, selector de RRPP con `?rrpp=`, total, ventas cerradas o agotadas;
   - el botón de pago está **deshabilitado a propósito** (`checkoutEnabled={false}`) hasta tener pedidos y Mercado Pago;
   - sin Supabase muestra una vista previa con datos de ejemplo (`src/lib/storefront.ts`).
-- **Migraciones:**
-  - `supabase/migrations/0001_evento_y_entradas.sql`: evento, tipos de entrada, vista pública y RLS;
-  - `supabase/migrations/0002_rrpp.sql`: sellers y vista pública de RRPP.
-  - Ojo: son anteriores a la decisión de **varios eventos** y **tipos libres**. Hay que llevarlas al modelo de `docs/ARQUITECTURA.md`: tabla `events` con `publicado` único, `ticket_types` con `comision_rrpp` y `en_venta`, `order_attendees`, `seller_settlements`, `access_requests`, etc.
+- **Etapa 2, pedidos y base de datos:**
+  - Migraciones `supabase/migrations/0001…0006`: modelo completo de `docs/ARQUITECTURA.md` (varios eventos con uno `publicado`, tipos libres con `comision_rrpp`, perfiles, accesos, RRPP, pedidos, items, personas, pagos, entradas, ingresos, comisiones, rendiciones, mails y auditoría inmutable), RLS en todas las tablas y datos iniciales.
+  - El público no lee tablas: solo las vistas `storefront_*` (solo lectura, sin comisiones ni cupos totales).
+  - `crear_pedido_web()` (solo `service_role`): valida evento, ventas abiertas, tipos, cantidades y RRPP; calcula el total con los precios de la base; reserva cupo bloqueando los tipos (no sobrevende); es idempotente por `idempotency_key`; limita pedidos por IP y por mail. Lo vendido se calcula desde los pedidos (`ticket_type_ocupacion`); una compra web sin pagar reserva 30 minutos (`vence_en`).
+  - Link privado `/pedido/[token]`: token = HMAC(`PEDIDO_TOKEN_SECRET`, clave de idempotencia); a la base llega solo su SHA-256 (`pedido_por_token()`). Sin indexar y sin Referer.
+  - Server action `src/app/actions/pedidos.ts`; errores `NEV:código` de la base traducidos al comprador.
+  - `PEDIDOS_DE_PRUEBA=true` habilita «Registrar pedido de prueba» (sin cobro) hasta la etapa 5; nunca en la producción de Vercel.
+  - Pruebas: `scripts/probar-base.sh` (PostgreSQL local con una imitación mínima de Supabase): permisos, cupo, idempotencia, límites, vencimientos y 10 compras simultáneas por la última entrada.
 - Documentación completa en `docs/`.
 
 **Siguiente, en orden** (ver la tabla de etapas en ARQUITECTURA):
-1. **Etapa 2:** modelo de datos definitivo (varios eventos, tipos libres), RLS y creación real de pedidos con cálculo de montos en el servidor.
-2. **Etapa 3:** `/ingresar` (Supabase Auth, registro de RRPP pendiente de aprobación) y panel del RRPP con carga de ventas.
-3. **Etapa 4:** admin completo (eventos, por aprobar, ventas por vendedor, comisiones y rendiciones, accesos, auditoría).
-4. **Etapa 5:** Mercado Pago Checkout Pro y webhook.
-5. **Etapa 6:** entradas por mail (QR, PDF con diseño Nevada, Resend).
-6. **Etapa 7:** Puerta.
-7. **Etapa 8:** pruebas de permisos, revisión de RLS y despliegue.
+1. **Etapa 3:** `/ingresar` (Supabase Auth, registro de RRPP pendiente de aprobación) y panel del RRPP con carga de ventas.
+2. **Etapa 4:** admin completo (eventos, por aprobar, ventas por vendedor, comisiones y rendiciones, accesos, auditoría).
+3. **Etapa 5:** Mercado Pago Checkout Pro y webhook. La preferencia tiene que vencer junto con la reserva (`vence_en`, 30 minutos) y excluir medios de pago diferidos (Rapipago, Pago Fácil); un pago que llegue con el pedido ya vencido se acepta solo si queda cupo, y si no, se devuelve.
+4. **Etapa 6:** entradas por mail (QR, PDF con diseño Nevada, Resend).
+5. **Etapa 7:** Puerta.
+6. **Etapa 8:** pruebas de permisos, revisión de RLS y despliegue.
 
 Trabajá por etapas, mostrando el avance, y cada etapa en commits claros.
 

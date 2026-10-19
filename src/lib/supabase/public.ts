@@ -3,7 +3,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 /**
  * Cliente de solo lectura con la clave pública (anon).
- * Las políticas RLS limitan lo que puede ver: evento activo y tipos de entrada.
+ * Solo puede leer las vistas públicas: el evento en la página, sus entradas y los RRPP activos.
  * Devuelve null si Supabase todavía no está configurado.
  */
 export function getPublicSupabase(): SupabaseClient | null {

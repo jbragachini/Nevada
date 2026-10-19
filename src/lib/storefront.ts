@@ -10,12 +10,10 @@ export type StorefrontEvent = {
   direccion: string | null;
   ciudad: string;
   ventasAbiertas: boolean;
-  demoraRevision: string;
 };
 
 export type StorefrontTicket = {
   id: string;
-  codigo: string;
   nombre: string;
   descripcion: string | null;
   precio: number;
@@ -46,12 +44,10 @@ const PREVIEW: { event: StorefrontEvent; tickets: StorefrontTicket[]; rrpps: Sto
     direccion: null,
     ciudad: "Oncativo, Córdoba",
     ventasAbiertas: true,
-    demoraRevision: "dentro de las 24 horas",
   },
   tickets: [
     {
       id: "preview-general",
-      codigo: "general",
       nombre: "Entrada General",
       descripcion: "Acceso general al evento",
       precio: 15000,
@@ -61,7 +57,6 @@ const PREVIEW: { event: StorefrontEvent; tickets: StorefrontTicket[]; rrpps: Sto
     },
     {
       id: "preview-mas25",
-      codigo: "mas25",
       nombre: "Entrada +25",
       descripcion: "Acceso para mayores de 25",
       precio: 20000,
@@ -81,9 +76,8 @@ export async function getStorefront(): Promise<Storefront> {
   if (!supabase) return { mode: "preview", ...PREVIEW };
 
   const { data: ev, error: evErr } = await supabase
-    .from("event_settings")
-    .select("id,nombre,subtitulo,fecha_inicio,lugar,direccion,ciudad,ventas_abiertas,pago_demora_txt")
-    .eq("activo", true)
+    .from("storefront_event")
+    .select("id,nombre,subtitulo,fecha_inicio,lugar,direccion,ciudad,ventas_abiertas")
     .maybeSingle();
 
   if (evErr) return { mode: "error", message: evErr.message };
@@ -91,7 +85,7 @@ export async function getStorefront(): Promise<Storefront> {
 
   const { data: tt, error: ttErr } = await supabase
     .from("storefront_ticket_types")
-    .select("id,codigo,nombre,descripcion,precio,disponibles,max_por_compra,en_venta,orden")
+    .select("id,nombre,descripcion,precio,disponibles,max_por_compra,en_venta,orden")
     .eq("event_id", ev.id)
     .order("orden", { ascending: true });
 
@@ -115,11 +109,9 @@ export async function getStorefront(): Promise<Storefront> {
       direccion: ev.direccion,
       ciudad: ev.ciudad,
       ventasAbiertas: ev.ventas_abiertas,
-      demoraRevision: ev.pago_demora_txt,
     },
     tickets: (tt ?? []).map((t) => ({
       id: t.id,
-      codigo: t.codigo,
       nombre: t.nombre,
       descripcion: t.descripcion,
       precio: t.precio,

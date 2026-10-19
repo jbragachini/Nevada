@@ -44,6 +44,17 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Superficies del navegador con la paleta */
+::selection {
+  background: var(--ice);
+  color: var(--night);
+}
+input,
+select,
+textarea {
+  caret-color: var(--blue);
+}
+
 /* Títulos estilo club: Archivo ancho y pesado */
 .display {
   font-family: var(--font-display);

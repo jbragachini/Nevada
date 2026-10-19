@@ -1,106 +1,72 @@
--- Nevada Producciones 2026
--- 0001: configuración del evento y tipos de entrada (lo que lee la página pública).
--- Las tablas de pedidos, pagos, entradas, vendedores y comisiones llegan en 0002+.
+-- Nevada Producciones
+-- 0001: eventos y tipos de entrada.
+-- Varios eventos editables; uno solo «en la página» (publicado) a la vez.
+-- Tipos de entrada libres por evento, con precio, cupo y comisión fija para el RRPP.
 
 create extension if not exists pgcrypto;
 
+-- Mantiene actualizado_en al día en cada UPDATE.
+create or replace function public.set_actualizado_en()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  new.actualizado_en := now();
+  return new;
+end;
+$$;
+
 -- ─────────────────────────────────────────────────────────────
--- Evento (una sola fila activa)
+-- Eventos
 -- ─────────────────────────────────────────────────────────────
-create table if not exists public.event_settings (
+create table public.events (
   id              uuid primary key default gen_random_uuid(),
-  nombre          text        not null,
-  subtitulo       text,
+  nombre          text        not null check (char_length(nombre) between 2 and 120),
+  subtitulo       text        check (char_length(subtitulo) <= 120),        -- DJ o subtítulo
   fecha_inicio    timestamptz not null,
-  lugar           text        not null,
-  direccion       text,
-  ciudad          text        not null default 'Oncativo, Córdoba',
+  lugar           text        not null check (char_length(lugar) between 2 and 120),
+  direccion       text        check (char_length(direccion) <= 200),
+  ciudad          text        not null default 'Oncativo, Córdoba' check (char_length(ciudad) <= 120),
+  descripcion     text        check (char_length(descripcion) <= 2000),
+  flyer_path      text,                                                      -- Storage público
+  publicado       boolean     not null default false,                        -- es el evento de la página de venta
   ventas_abiertas boolean     not null default false,
-  activo          boolean     not null default true,
-  -- Pago: Mercado Pago Checkout Pro. El pedido se marca pagado solo cuando Mercado Pago
-  -- lo confirma al servidor; las entradas se liberan cuando el admin aprueba.
-  -- Tiempo estimado de revisión que se le informa al comprador
-  pago_demora_txt text        not null default 'dentro de las 24 horas',
+  creado_por      uuid        references auth.users(id) on delete set null,
+  creado_en       timestamptz not null default now(),
+  actualizado_por uuid        references auth.users(id) on delete set null,
   actualizado_en  timestamptz not null default now()
 );
 
--- Solo puede haber un evento activo a la vez.
-create unique index if not exists event_settings_un_activo
-  on public.event_settings (activo) where activo;
+-- Solo un evento en la página a la vez.
+create unique index events_un_publicado on public.events (publicado) where publicado;
+
+create trigger events_actualizado_en
+  before update on public.events
+  for each row execute function public.set_actualizado_en();
 
 -- ─────────────────────────────────────────────────────────────
--- Tipos de entrada
+-- Tipos de entrada (libres por evento)
+-- Lo vendido no se guarda acá: se calcula desde los pedidos (ver 0005).
+-- Un tipo con ventas no se puede borrar (order_items lo referencia): se pasa a en_venta = false.
 -- ─────────────────────────────────────────────────────────────
-create table if not exists public.ticket_types (
-  id          uuid primary key default gen_random_uuid(),
-  event_id    uuid        not null references public.event_settings(id) on delete cascade,
-  codigo      text        not null,                 -- 'general' | 'mas25'
-  nombre      text        not null,                 -- 'Entrada General'
-  descripcion text,
-  precio      integer     not null check (precio >= 0),          -- en pesos, sin decimales
-  cupo_total  integer     not null check (cupo_total >= 0),
-  vendidas    integer     not null default 0 check (vendidas >= 0),
-  max_por_compra integer  not null default 10 check (max_por_compra between 1 and 50),
-  en_venta    boolean     not null default true,
-  orden       integer     not null default 0,
-  unique (event_id, codigo),
-  check (vendidas <= cupo_total)
+create table public.ticket_types (
+  id             uuid primary key default gen_random_uuid(),
+  event_id       uuid        not null references public.events(id) on delete cascade,
+  nombre         text        not null check (char_length(nombre) between 1 and 60),
+  descripcion    text        check (char_length(descripcion) <= 200),
+  precio         integer     not null check (precio >= 0),                  -- pesos, sin decimales
+  cupo_total     integer     not null check (cupo_total >= 0),
+  comision_rrpp  integer     not null default 0 check (comision_rrpp >= 0), -- pesos fijos por entrada
+  max_por_compra integer     not null default 10 check (max_por_compra between 1 and 50),
+  en_venta       boolean     not null default true,
+  orden          integer     not null default 0,
+  creado_en      timestamptz not null default now(),
+  actualizado_en timestamptz not null default now()
 );
 
--- ─────────────────────────────────────────────────────────────
--- Vista pública: solo lo que el comprador necesita ver
--- ─────────────────────────────────────────────────────────────
-create or replace view public.storefront_ticket_types
-with (security_invoker = true) as
-select
-  t.id,
-  t.event_id,
-  t.codigo,
-  t.nombre,
-  t.descripcion,
-  t.precio,
-  greatest(t.cupo_total - t.vendidas, 0) as disponibles,
-  t.max_por_compra,
-  t.en_venta,
-  t.orden
-from public.ticket_types t
-join public.event_settings e on e.id = t.event_id and e.activo;
+create index ticket_types_event on public.ticket_types (event_id, orden);
 
--- ─────────────────────────────────────────────────────────────
--- Seguridad (RLS): el público solo puede LEER el evento activo y sus entradas.
--- Escrituras: únicamente el administrador (políticas en 0002 cuando existan los roles).
--- ─────────────────────────────────────────────────────────────
-alter table public.event_settings enable row level security;
-alter table public.ticket_types   enable row level security;
-
-drop policy if exists "evento activo visible" on public.event_settings;
-create policy "evento activo visible"
-  on public.event_settings for select
-  to anon, authenticated
-  using (activo);
-
-drop policy if exists "entradas del evento activo visibles" on public.ticket_types;
-create policy "entradas del evento activo visibles"
-  on public.ticket_types for select
-  to anon, authenticated
-  using (exists (select 1 from public.event_settings e where e.id = event_id and e.activo));
-
-grant select on public.storefront_ticket_types to anon, authenticated;
-
--- ─────────────────────────────────────────────────────────────
--- Datos iniciales (editables luego desde el panel admin).
--- Fecha y lugar quedan para completar; las ventas arrancan CERRADAS.
--- ─────────────────────────────────────────────────────────────
-insert into public.event_settings (nombre, subtitulo, fecha_inicio, lugar, ciudad, ventas_abiertas)
-select 'Navidad con Nevada 2026', 'DJ Nacho Heisecke', '2026-12-24 23:59:00-03', 'Lugar a confirmar', 'Oncativo, Córdoba', false
-where not exists (select 1 from public.event_settings where activo);
-
-insert into public.ticket_types (event_id, codigo, nombre, descripcion, precio, cupo_total, orden)
-select e.id, v.codigo, v.nombre, v.descripcion, v.precio, v.cupo, v.orden
-from public.event_settings e
-cross join (values
-  ('general', 'Entrada General', 'Acceso general al evento', 15000, 400, 1),
-  ('mas25',   'Entrada +25',     'Acceso para mayores de 25', 20000, 200, 2)
-) as v(codigo, nombre, descripcion, precio, cupo, orden)
-where e.activo
-on conflict (event_id, codigo) do nothing;
+create trigger ticket_types_actualizado_en
+  before update on public.ticket_types
+  for each row execute function public.set_actualizado_en();
