@@ -1,3 +1,4 @@
+import { ClaveGate } from "@/components/ClaveGate";
 import { EventHeader } from "@/components/EventHeader";
 import { InvitacionGate } from "@/components/InvitacionGate";
 import { NevadaLogo } from "@/components/NevadaLogo";
@@ -92,7 +93,9 @@ function Body({
         : checkout.motivo,
   };
 
-  return sf.event.acceso === "invitacion" ? <InvitacionGate {...formProps} /> : <TicketForm {...formProps} />;
+  if (sf.event.acceso === "lista") return <InvitacionGate {...formProps} />;
+  if (sf.event.acceso === "clave") return <ClaveGate {...formProps} />;
+  return <TicketForm {...formProps} />;
 }
 
 function Notice({ title, children }: { title: string; children: React.ReactNode }) {

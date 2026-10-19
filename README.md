@@ -13,7 +13,7 @@ Traspaso para Claude Code en [`CLAUDE.md`](CLAUDE.md); demo de referencia en `do
 | 1. Página pública de venta | ✅ Terminada (diseño, selección de entradas, datos del comprador, medio de pago, total, ventas cerradas / agotadas) |
 | 2. Pedidos y base de datos | ✅ Terminada (modelo de datos completo, seguridad por filas, creación real de pedidos con montos y cupo calculados en la base, link privado de seguimiento `/pedido/[token]`) |
 | 3. Panel de vendedores | ✅ Terminada (`/ingresar` con usuario o mail, pedido de acceso de RRPP pendiente de aprobación, panel con métricas, comisiones, lo que hay que rendir, link personal, ventas con QR, carga de ventas con una persona por entrada, lista de invitados) |
-| Eventos con invitación | ✅ Cada evento es público o con invitación (solo compra quien está en la lista, hasta su máximo de entradas); se puede ocultar «¿Quién te vendió?» |
+| Eventos con invitación | ✅ Cada evento es **público**, **con lista de invitados** (por mail, hasta su máximo de entradas) o **con palabra clave**; se puede ocultar «¿Quién te vendió?» |
 | 4–8 | ⏳ Pendientes |
 
 **Medio de pago:** Mercado Pago (Checkout Pro). El comprador paga el total en Mercado Pago; el pedido queda *pagado* solo cuando Mercado Pago lo confirma al servidor, y las entradas con QR se liberan cuando el administrador aprueba el pedido. Mercado Pago cobra comisión por cada venta según el plazo de acreditación elegido.
@@ -64,7 +64,10 @@ scripts/probar-base.sh       # aplica todas las migraciones en una base descarta
   insert into sellers (profile_id, nombre_publico, codigo)
     select id, nombre, 'lucas' from profiles where usuario = 'lucas';
   ```
-- **Evento con invitación o público:** `update events set acceso = 'invitacion' where publicado;` (o `'publico'`).
+- **Acceso del evento:**
+  - Público: `update events set acceso = 'publico' where publicado;`
+  - Con lista de invitados: `update events set acceso = 'lista' where publicado;`
+  - Con palabra clave: `update events set acceso = 'clave', clave_acceso = 'Noche Blanca' where publicado;` (no importan mayúsculas, acentos ni espacios de más)
 - **Mostrar u ocultar «¿Quién te vendió?»:** `update events set mostrar_rrpp = false where publicado;`
 - **Tope de invitados de un RRPP** por evento: `update sellers set max_invitados = 20 where codigo = 'lucas';` (`null` = sin tope).
 - **Invitar desde Nevada:** `insert into event_guests (event_id, email, nombre, max_entradas) select id, 'mail@ejemplo.com', 'Nombre', 2 from events where publicado;`

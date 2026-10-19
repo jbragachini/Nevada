@@ -65,12 +65,12 @@ $$;
 -- Compra web armada como la arma el servidor.
 create function pruebas.pedido(items jsonb, email text default 'ana@example.com',
                                seller uuid default null, clave uuid default gen_random_uuid(),
-                               ip text default null)
+                               ip text default null, palabra text default null)
 returns text language sql as $$
   select format(
-    'select * from public.crear_pedido_web(%L, %L::jsonb, %L, %L, %L, %L, %L, %L, %L, %L)',
+    'select * from public.crear_pedido_web(%L, %L::jsonb, %L, %L, %L, %L, %L, %L, %L, %L, %L)',
     (select id from public.events where publicado), items, 'Ana', 'Pérez', email, '',
-    seller, clave, encode(digest(clave::text, 'sha256'), 'hex'), ip
+    seller, clave, encode(digest(clave::text, 'sha256'), 'hex'), ip, palabra
   );
 $$;
 

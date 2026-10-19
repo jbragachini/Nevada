@@ -1,4 +1,4 @@
--- Pruebas de la etapa 3: eventos con invitación, «¿Quién te vendió?» oculto, carga de ventas del
+-- Pruebas de la etapa 3: eventos con lista de invitados o palabra clave, «¿Quién te vendió?» oculto, carga de ventas del
 -- RRPP, emisión de entradas, comisiones y panel. Corre después de pedidos_y_seguridad.sql (usa sus
 -- funciones de prueba y sus datos: admin «a…a», Lucas «a…b», Martina «a…c», RRPP sin aprobar «a…d»).
 \set ON_ERROR_STOP 1
@@ -50,9 +50,11 @@ returns jsonb language sql as $$
 $$;
 
 -- ───────── Evento con invitación ─────────
-update public.events set acceso = 'invitacion', mostrar_rrpp = false where publicado;
-select pruebas.igual('la página sabe que el evento es con invitación y sin lista de RRPP',
-  (select acceso || ':' || mostrar_rrpp from public.storefront_event), 'invitacion:false');
+select pruebas.igual('un evento con palabra clave necesita la palabra',
+  pruebas.correr($$update public.events set acceso = 'clave' where publicado$$, 'postgres'), '23514');
+update public.events set acceso = 'lista', mostrar_rrpp = false where publicado;
+select pruebas.igual('la página sabe que el evento es con lista y sin «¿Quién te vendió?»',
+  (select acceso || ':' || mostrar_rrpp from public.storefront_event), 'lista:false');
 select pruebas.igual('quien no está en la lista no puede comprar',
   pruebas.correr(pruebas.pedido(jsonb_build_array(
     jsonb_build_object('ticket_type_id', pruebas.tipo('Entrada General'), 'cantidad', 1)), 'nadie@example.com')),
@@ -121,6 +123,39 @@ select pruebas.igual('un invitado dado de baja ya no puede comprar',
   pruebas.correr(pruebas.pedido(jsonb_build_array(
     jsonb_build_object('ticket_type_id', pruebas.tipo('Entrada General'), 'cantidad', 1)), 'vip@example.com')),
   'NEV:no_invitado');
+
+-- ───────── Evento con palabra clave ─────────
+update public.events set acceso = 'clave', clave_acceso = 'Navidad Nevada' where publicado;
+select pruebas.igual('la palabra clave no se ve en la página pública',
+  (select count(*) from information_schema.columns
+   where table_name = 'storefront_event' and column_name = 'clave_acceso'), 0::bigint);
+select pruebas.igual('la clave se compara sin mayúsculas, acentos ni espacios de más',
+  (select public.verificar_clave((select id from public.events where publicado), '  navídad   NEVADA ', null)), true);
+select pruebas.igual('una clave equivocada no pasa',
+  (select public.verificar_clave((select id from public.events where publicado), 'navidad', null)), false);
+select pruebas.igual('sin la clave no se puede comprar aunque se saltee la página',
+  pruebas.correr(pruebas.pedido(jsonb_build_array(
+    jsonb_build_object('ticket_type_id', pruebas.tipo('Entrada General'), 'cantidad', 1)), 'clave1@example.com')),
+  'NEV:clave_incorrecta');
+select pruebas.igual('con la clave equivocada tampoco',
+  pruebas.correr(pruebas.pedido(jsonb_build_array(
+    jsonb_build_object('ticket_type_id', pruebas.tipo('Entrada General'), 'cantidad', 1)), 'clave1@example.com',
+    null, gen_random_uuid(), null, 'otra cosa')),
+  'NEV:clave_incorrecta');
+select pruebas.igual('con la clave correcta compra cualquiera',
+  pruebas.correr(pruebas.pedido(jsonb_build_array(
+    jsonb_build_object('ticket_type_id', pruebas.tipo('Entrada General'), 'cantidad', 1)), 'clave1@example.com',
+    null, gen_random_uuid(), null, 'navidad nevada')),
+  'ok');
+select pruebas.igual('adivinar la clave tiene límite por conexión',
+  (select string_agg(pruebas.correr(format($$select public.verificar_clave(%L, 'prueba%s', 'ip-clave')$$,
+                       (select id from public.events where publicado), g)), ',')
+   from generate_series(1, 11) g) like '%ok,NEV:demasiados_intentos', true);
+select pruebas.igual('el RRPP ve la palabra clave para compartirla',
+  pruebas.valor('select clave_acceso from public.events where publicado', 'authenticated', :lucas),
+  'Navidad Nevada');
+select pruebas.igual('el público no puede consultar la clave directo',
+  pruebas.correr($$select public.verificar_clave(gen_random_uuid(), 'x', null)$$, 'anon'), '42501');
 
 update public.events set acceso = 'publico', mostrar_rrpp = true where publicado;
 select pruebas.igual('al volver a público, compra cualquiera',

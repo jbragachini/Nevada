@@ -3,8 +3,8 @@
 --   • Vistas públicas: el evento en la página, sus tipos con lo disponible y los RRPP activos.
 --   • crear_pedido_web(): crea el pedido de una compra web, con montos calculados acá.
 --   • pedido_por_token(): estado del pedido para el link privado /pedido/[token].
---   • verificar_invitacion(): en un evento con invitación, si el mail está en la lista y cuántas
---     entradas le quedan.
+--   • verificar_invitacion(): en un evento con lista, si el mail está y cuántas entradas le quedan.
+--   • verificar_clave(): en un evento con palabra clave, si la palabra es correcta.
 -- Las funciones solo las puede llamar el servidor (service_role), nunca el navegador.
 
 -- ─────────────────────────────────────────────────────────────
@@ -142,7 +142,7 @@ create trigger event_guests_tope
   before insert or update of activo, seller_id, event_id on public.event_guests
   for each row execute function public.event_guests_tope();
 
--- Intentos de verificación por IP (para que no se pueda adivinar la lista probando mails).
+-- Intentos de verificación por IP (para que no se pueda adivinar la lista ni la clave probando).
 create table public.invite_checks (
   id        bigint generated always as identity primary key,
   ip_hash   text        not null,
@@ -177,9 +177,46 @@ begin
       'restantes', greatest(g.max_entradas - oc.usadas, 0)
     )
     from public.event_guests g
-    join public.events e on e.id = g.event_id and e.publicado and e.acceso = 'invitacion'
+    join public.events e on e.id = g.event_id and e.publicado and e.acceso = 'lista'
     join public.event_guest_ocupacion oc on oc.guest_id = g.id
     where g.event_id = p_event_id and g.email = lower(btrim(p_email)) and g.activo
+  );
+end;
+$$;
+
+-- Compara la palabra clave sin importar mayúsculas, espacios de más ni acentos.
+create or replace function public.clave_normalizada(p text)
+returns text
+language sql
+immutable
+set search_path = ''
+as $$
+  select regexp_replace(
+           translate(lower(btrim(p)), 'áéíóúüñ', 'aeiouun'),
+           '\s+', ' ', 'g');
+$$;
+
+-- ¿Es la palabra clave del evento? Hasta 10 intentos cada 10 minutos por IP (comparte el límite
+-- con la consulta de invitados).
+create or replace function public.verificar_clave(p_event_id uuid, p_clave text, p_ip_hash text)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if p_ip_hash is not null then
+    if (select count(*) from public.invite_checks c
+        where c.ip_hash = p_ip_hash and c.creado_en > now() - interval '10 minutes') >= 10 then
+      raise exception 'NEV:demasiados_intentos';
+    end if;
+    insert into public.invite_checks (ip_hash) values (p_ip_hash);
+  end if;
+
+  return exists (
+    select 1 from public.events e
+    where e.id = p_event_id and e.publicado and e.acceso = 'clave'
+      and public.clave_normalizada(e.clave_acceso) = public.clave_normalizada(p_clave)
   );
 end;
 $$;
@@ -188,8 +225,8 @@ $$;
 -- Crear pedido web.
 -- Controles: evento en la página y con ventas abiertas, tipos del evento y a la venta, cantidades
 -- dentro del máximo, cupo (con los tipos bloqueados mientras se cuenta, así dos compras a la vez
--- no sobrevenden), RRPP activo, lista de invitados si el evento es con invitación (la venta queda
--- para el RRPP que invitó), límite de pedidos por IP y por mail, y pedido único por
+-- no sobrevenden), RRPP activo, lista de invitados si el evento es con lista (la venta queda
+-- para el RRPP que invitó), palabra clave si el evento es con clave, límite de pedidos por IP y por mail, y pedido único por
 -- idempotency_key (un doble click o un reintento devuelven el mismo pedido).
 -- Los errores salen con el prefijo NEV: y un código que el servidor traduce para el comprador.
 -- ─────────────────────────────────────────────────────────────
@@ -203,7 +240,8 @@ create or replace function public.crear_pedido_web(
   p_seller_id       uuid,
   p_idempotency_key uuid,
   p_token_hash      text,
-  p_ip_hash         text
+  p_ip_hash         text,
+  p_clave           text default null
 )
 returns table (order_id uuid, numero text, total integer, ya_existia boolean)
 language plpgsql
@@ -253,9 +291,15 @@ begin
     raise exception 'NEV:rrpp_no_disponible';
   end if;
 
-  -- Evento con invitación: solo la lista. Se bloquea al invitado para que dos compras a la vez
+  -- Evento con palabra clave: se vuelve a controlar acá (la página no alcanza).
+  if v_event.acceso = 'clave'
+     and public.clave_normalizada(v_event.clave_acceso) is distinct from public.clave_normalizada(p_clave) then
+    raise exception 'NEV:clave_incorrecta';
+  end if;
+
+  -- Evento con lista: solo los invitados. Se bloquea al invitado para que dos compras a la vez
   -- no pasen su máximo.
-  if v_event.acceso = 'invitacion' then
+  if v_event.acceso = 'lista' then
     select * into v_guest from public.event_guests g
     where g.event_id = p_event_id and g.email = v_email and g.activo
     for update;
@@ -393,11 +437,13 @@ as $$
   where o.token_hash = p_token_hash;
 $$;
 
-revoke execute on function public.crear_pedido_web(uuid, jsonb, text, text, text, text, uuid, uuid, text, text)
+revoke execute on function public.crear_pedido_web(uuid, jsonb, text, text, text, text, uuid, uuid, text, text, text)
   from public, anon, authenticated;
 revoke execute on function public.pedido_por_token(text) from public, anon, authenticated;
 revoke execute on function public.verificar_invitacion(uuid, text, text) from public, anon, authenticated;
 grant execute on function public.verificar_invitacion(uuid, text, text) to service_role;
-grant execute on function public.crear_pedido_web(uuid, jsonb, text, text, text, text, uuid, uuid, text, text)
+revoke execute on function public.verificar_clave(uuid, text, text) from public, anon, authenticated;
+grant execute on function public.verificar_clave(uuid, text, text) to service_role;
+grant execute on function public.crear_pedido_web(uuid, jsonb, text, text, text, text, uuid, uuid, text, text, text)
   to service_role;
 grant execute on function public.pedido_por_token(text) to service_role;

@@ -110,16 +110,16 @@ create policy "rrpp ve su ficha" on public.sellers
   for select to authenticated using (id = public.mi_seller_id());
 
 -- Eventos con ventas abiertas (para cargar ventas) y el evento con invitación que está en la página
--- (para armar su lista de invitados), con sus tipos, incluida la comisión.
+-- (para armar su lista de invitados o ver la palabra clave que comparte), con sus tipos y comisión.
 create policy "rrpp ve eventos en venta" on public.events
   for select to authenticated using (
-    public.mi_seller_id() is not null and (ventas_abiertas or (publicado and acceso = 'invitacion'))
+    public.mi_seller_id() is not null and (ventas_abiertas or (publicado and acceso in ('lista', 'clave')))
   );
 create policy "rrpp ve tipos en venta" on public.ticket_types
   for select to authenticated using (
     public.mi_seller_id() is not null
     and exists (select 1 from public.events e
-                where e.id = event_id and (e.ventas_abiertas or (e.publicado and e.acceso = 'invitacion')))
+                where e.id = event_id and (e.ventas_abiertas or (e.publicado and e.acceso in ('lista', 'clave'))))
   );
 
 -- Su propia lista de invitados: la ve, agrega, edita y da de baja. Nunca la de otro RRPP.

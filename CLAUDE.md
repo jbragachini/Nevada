@@ -55,9 +55,11 @@ Este archivo es el traspaso del proyecto para Claude Code. Leelo completo antes 
 - Mercado Pago cobra comisión por venta. Joaquín lo sabe y lo aceptó.
 
 ### Eventos con invitación (decidido con Joaquín)
-- Cada evento es **público** o **con invitación** (`events.acceso`), editable siempre por el admin.
-- Con invitación hay una **lista de invitados** por evento (`event_guests`): mail, nombre y **máximo de entradas** (entre todos sus pedidos). Solo compra quien está en la lista.
-- La página pide primero el mail; si está, muestra «Invitación para…» y el formulario con el mail fijo y el tope. Las consultas tienen límite por IP.
+- Cada evento tiene un **acceso** (`events.acceso`) que elige y cambia siempre el admin:
+  - `publico`: compra cualquiera;
+  - `lista`: **lista de invitados** por evento (`event_guests`): mail, nombre y **máximo de entradas** (entre todos sus pedidos). Solo compra quien está en la lista;
+  - `clave`: **palabra clave** del evento (`events.clave_acceso`). Se compara sin mayúsculas, acentos ni espacios de más (`clave_normalizada`), `crear_pedido_web` la vuelve a controlar y los intentos tienen límite por IP. Los RRPP la ven en `/rrpp/invitados` para compartirla.
+- Con lista, la página pide primero el mail; si está, muestra «Invitación para…» y el formulario con el mail fijo y el tope. Con clave, pide la palabra y después el formulario. Las consultas tienen límite por IP.
 - La lista la cargan el admin y **cada RRPP** (solo ve y edita la suya). Lo que invita un RRPP queda **a su nombre** para la comisión. El admin puede poner un **tope de invitados por RRPP** (`sellers.max_invitados`, por evento).
 - **«¿Quién te vendió?»** se puede ocultar por evento (`events.mostrar_rrpp`); oculto, el link `/?rrpp=` igual asigna la venta.
 - La **comisión** por tipo de entrada solo la cambia el admin (RLS).
@@ -142,10 +144,10 @@ Next.js 15 (App Router) · TypeScript · Tailwind 4 · Supabase (Postgres + Auth
   - Migración `0007_rrpp_ventas.sql`: `cargar_venta_rrpp()` (el RRPP sale de `auth.uid()`; efectivo emite al instante, transferencias quedan `por_confirmar`), `emitir_entradas()` (un QR por persona, comisión, sin doble emisión), `panel_rrpp()`, `email_de_usuario()`. Invitados, tope y `verificar_invitacion()` en 0003–0005.
   - Supabase Auth con cookies HttpOnly (`src/lib/supabase/server.ts`, `src/middleware.ts` en runtime Node). `/ingresar` (usuario o mail; pedir acceso crea usuario + perfil inactivo + pedido pendiente con la API de admin), `/rrpp` (métricas, comisiones, a rendir, link, ventas con QR, carga de ventas), `/rrpp/invitados`, `/admin` provisorio.
   - QR: `NEV1.<qr_token>.<HMAC>` con `QR_SIGNING_SECRET` (`src/lib/qr.ts`); la Puerta tiene que verificar la firma.
-  - Pruebas: `supabase/tests/invitaciones_y_rrpp.sql` (104 controles en total con `scripts/probar-base.sh`). Probado de punta a punta con Supabase Auth (GoTrue) y PostgREST locales y navegador real.
+  - Pruebas: `supabase/tests/invitaciones_y_rrpp.sql` (114 controles en total con `scripts/probar-base.sh`). Probado de punta a punta con Supabase Auth (GoTrue) y PostgREST locales y navegador real.
 
 **Siguiente, en orden** (ver la tabla de etapas en ARQUITECTURA):
-1. **Etapa 4:** admin completo (eventos, por aprobar, ventas por vendedor, comisiones y rendiciones, accesos, auditoría), más: acceso público/invitación y «¿Quién te vendió?» por evento, lista de invitados de Nevada y de todos los RRPP, topes por RRPP, aprobar accesos creando la ficha de vendedor y aprobar pedidos llamando a `emitir_entradas()`.
+1. **Etapa 4:** admin completo (eventos, por aprobar, ventas por vendedor, comisiones y rendiciones, accesos, auditoría), más: acceso público / lista / palabra clave y «¿Quién te vendió?» por evento, lista de invitados de Nevada y de todos los RRPP, topes por RRPP, aprobar accesos creando la ficha de vendedor y aprobar pedidos llamando a `emitir_entradas()`.
 2. **Etapa 5:** Mercado Pago Checkout Pro y webhook. La preferencia tiene que vencer junto con la reserva (`vence_en`, 30 minutos) y excluir medios de pago diferidos (Rapipago, Pago Fácil); un pago que llegue con el pedido ya vencido se acepta solo si queda cupo, y si no, se devuelve.
 3. **Etapa 6:** entradas por mail (QR, PDF con diseño Nevada, Resend).
 4. **Etapa 7:** Puerta.

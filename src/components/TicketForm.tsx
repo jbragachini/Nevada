@@ -18,8 +18,10 @@ type Props = {
   disabledReason?: string;
   /** false: no se muestra «¿Quién te vendió?» (el RRPP del link igual queda asignado). */
   mostrarRrpp?: boolean;
-  /** Evento con invitación: mail fijo y tope de entradas del invitado. */
+  /** Evento con lista: mail fijo y tope de entradas del invitado. */
   invitado?: { email: string; restantes: number };
+  /** Evento con palabra clave: se manda con el pedido para que la base la controle. */
+  clave?: string;
 };
 
 type Buyer = { nombre: string; apellido: string; email: string; whatsapp: string };
@@ -36,6 +38,7 @@ export function TicketForm({
   disabledReason,
   mostrarRrpp = true,
   invitado,
+  clave,
 }: Props) {
   const [qty, setQty] = useState<Record<string, number>>({});
   const [buyer, setBuyer] = useState<Buyer>({
@@ -124,6 +127,7 @@ export function TicketForm({
       eventId,
       ...buyer,
       rrppId,
+      clave,
       items: tickets
         .filter((t) => (qty[t.id] ?? 0) > 0)
         .map((t) => ({ ticketTypeId: t.id, cantidad: qty[t.id] })),

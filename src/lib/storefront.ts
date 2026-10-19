@@ -10,8 +10,8 @@ export type StorefrontEvent = {
   direccion: string | null;
   ciudad: string;
   ventasAbiertas: boolean;
-  /** "invitacion": solo compra quien está en la lista de invitados. */
-  acceso: "publico" | "invitacion";
+  /** "lista": solo compra quien está en la lista de invitados. "clave": quien sabe la palabra clave. */
+  acceso: "publico" | "lista" | "clave";
   /** Mostrar «¿Quién te vendió?». Oculto, el link ?rrpp= igual asigna la venta. */
   mostrarRrpp: boolean;
 };
@@ -115,7 +115,7 @@ export async function getStorefront(): Promise<Storefront> {
       direccion: ev.direccion,
       ciudad: ev.ciudad,
       ventasAbiertas: ev.ventas_abiertas,
-      acceso: ev.acceso === "invitacion" ? "invitacion" : "publico",
+      acceso: ev.acceso === "lista" || ev.acceso === "clave" ? ev.acceso : "publico",
       mostrarRrpp: ev.mostrar_rrpp,
     },
     tickets: (tt ?? []).map((t) => ({

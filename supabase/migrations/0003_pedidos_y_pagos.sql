@@ -15,7 +15,7 @@
 create sequence public.order_numero_seq;
 
 -- ─────────────────────────────────────────────────────────────
--- Lista de invitados (eventos con acceso = 'invitacion')
+-- Lista de invitados (eventos con acceso = 'lista')
 -- Solo compra quien está en la lista, hasta max_entradas entre todos sus pedidos.
 -- La cargan el admin y los RRPP; lo que invita un RRPP queda a su nombre para la comisión.
 -- ─────────────────────────────────────────────────────────────

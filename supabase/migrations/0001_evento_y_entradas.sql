@@ -1,8 +1,11 @@
 -- Nevada Producciones
 -- 0001: eventos y tipos de entrada.
 -- Varios eventos editables; uno solo «en la página» (publicado) a la vez.
--- Cada evento es público o con invitación (solo compra quien está en la lista de invitados), y
--- puede mostrar u ocultar «¿Quién te vendió?». El admin cambia las dos cosas cuando quiera.
+-- Acceso de cada evento, lo elige el admin y lo cambia cuando quiera:
+--   publico  compra cualquiera
+--   lista    solo compra quien está en la lista de invitados (por mail), hasta su máximo
+--   clave    solo compra quien sabe la palabra clave del evento
+-- También puede mostrar u ocultar «¿Quién te vendió?».
 -- Tipos de entrada libres por evento, con precio, cupo y comisión fija para el RRPP.
 
 create extension if not exists pgcrypto;
@@ -34,13 +37,17 @@ create table public.events (
   flyer_path      text,                                                      -- Storage público
   publicado       boolean     not null default false,                        -- es el evento de la página de venta
   ventas_abiertas boolean     not null default false,
-  acceso          text        not null default 'publico' check (acceso in ('publico', 'invitacion')),
+  acceso          text        not null default 'publico' check (acceso in ('publico', 'lista', 'clave')),
+  clave_acceso    text        check (char_length(btrim(clave_acceso)) between 4 and 40), -- palabra clave
   mostrar_rrpp    boolean     not null default true,                         -- «¿Quién te vendió?» en la página
   creado_por      uuid        references auth.users(id) on delete set null,
   creado_en       timestamptz not null default now(),
   actualizado_por uuid        references auth.users(id) on delete set null,
   actualizado_en  timestamptz not null default now()
 );
+
+alter table public.events add constraint events_clave_si_hace_falta
+  check (acceso <> 'clave' or clave_acceso is not null);
 
 -- Solo un evento en la página a la vez.
 create unique index events_un_publicado on public.events (publicado) where publicado;

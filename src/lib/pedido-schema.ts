@@ -25,6 +25,8 @@ export const pedidoSchema = buyerSchema.extend({
     .min(1, "Elegí al menos una entrada")
     .max(20),
   rrppId: z.string().uuid().optional().or(z.literal("")),
+  /** Evento con palabra clave: la vuelve a controlar la base. */
+  clave: z.string().max(80).optional(),
   idempotencyKey: z.string().uuid(),
 });
 
@@ -41,6 +43,11 @@ export type PedidoResult = {
 export const invitacionSchema = z.object({
   eventId: z.string().uuid(),
   email: z.string().trim().max(254).email(),
+});
+
+export const claveSchema = z.object({
+  eventId: z.string().uuid(),
+  clave: z.string().trim().min(1, "Ingresá la palabra clave").max(80),
 });
 
 export type InvitacionResult =

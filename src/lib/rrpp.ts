@@ -148,21 +148,29 @@ export async function getEventosParaCargar(): Promise<EventoCarga[]> {
 }
 
 export type Invitados = {
-  evento: { id: string; nombre: string; fechaInicio: string } | null;
+  evento: { id: string; nombre: string; fechaInicio: string; acceso: "lista" | "clave"; clave: string | null } | null;
   lista: { id: string; nombre: string; email: string; maxEntradas: number; activo: boolean }[];
 };
 
-/** El evento con invitación que está en la página y la lista de invitados de este RRPP. */
+/** El evento con invitación que está en la página: su lista de invitados de este RRPP o su palabra clave. */
 export async function getMisInvitados(): Promise<Invitados> {
   const supabase = await getServerSupabase();
   if (!supabase) return { evento: null, lista: [] };
   const { data: ev } = await supabase
     .from("events")
-    .select("id,nombre,fecha_inicio")
+    .select("id,nombre,fecha_inicio,acceso,clave_acceso")
     .eq("publicado", true)
-    .eq("acceso", "invitacion")
+    .in("acceso", ["lista", "clave"])
     .maybeSingle();
   if (!ev) return { evento: null, lista: [] };
+  const evento = {
+    id: ev.id,
+    nombre: ev.nombre,
+    fechaInicio: ev.fecha_inicio,
+    acceso: ev.acceso as "lista" | "clave",
+    clave: ev.clave_acceso,
+  };
+  if (evento.acceso === "clave") return { evento, lista: [] };
   const { data, error } = await supabase
     .from("event_guests")
     .select("id,nombre,email,max_entradas,activo")
@@ -170,7 +178,7 @@ export async function getMisInvitados(): Promise<Invitados> {
     .order("creado_en", { ascending: false });
   if (error) throw new Error(`invitados: ${error.message}`);
   return {
-    evento: { id: ev.id, nombre: ev.nombre, fechaInicio: ev.fecha_inicio },
+    evento,
     lista: (data ?? []).map((g) => ({
       id: g.id,
       nombre: g.nombre,

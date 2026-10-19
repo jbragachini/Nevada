@@ -75,7 +75,8 @@ access_requests     id, nombre, usuario, whatsapp, estado [pendiente|aprobada|re
 
 events              id, nombre, subtitulo (DJ), fecha_inicio, lugar, direccion, ciudad, descripcion,
                     publicado (es el evento de la página de venta; solo uno a la vez), ventas_abiertas,
-                    acceso [publico|invitacion], mostrar_rrpp («¿Quién te vendió?» visible),
+                    acceso [publico|lista|clave], clave_acceso (palabra clave),
+                    mostrar_rrpp («¿Quién te vendió?» visible),
                     flyer_path (Storage público, imagen reducida),
                     creado_por, actualizado_por, actualizado_en
                     (se pueden crear, editar y duplicar; se eliminan solo si no tienen ventas)
@@ -90,7 +91,7 @@ sellers             id, profile_id, nombre_publico, codigo (link /?rrpp=), puede
                     max_invitados (tope por evento; null = sin tope), activo
 
 event_guests        id, event_id, email (único por evento), nombre, max_entradas, seller_id (null = Nevada),
-                    creado_por, activo (lista de invitados de los eventos con invitación)
+                    creado_por, activo (lista de invitados de los eventos con acceso = lista)
 
 orders              id, event_id, numero (NEV-000123), comprador_nombre, comprador_email,
                     comprador_whatsapp, seller_id (null = venta directa), invitado_id,
