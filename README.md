@@ -4,7 +4,7 @@ Plataforma de venta y control de entradas de **Nevada Producciones** — Navidad
 
 Dirección: **https://www.nevadaproducciones.com**
 
-La propuesta completa (arquitectura, modelo de datos, pantallas y etapas) está en [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md) y el plan de seguridad en [`docs/SEGURIDAD.md`](docs/SEGURIDAD.md).
+Traspaso para Claude Code en [`CLAUDE.md`](CLAUDE.md); demo de referencia en `docs/demo/nevada-demo.html`. La propuesta completa (arquitectura, modelo de datos, pantallas y etapas) está en [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md) y el plan de seguridad en [`docs/SEGURIDAD.md`](docs/SEGURIDAD.md).
 
 ## Estado
 

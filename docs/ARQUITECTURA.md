@@ -1,6 +1,6 @@
 # Nevada Producciones 2026 — Arquitectura propuesta
 
-Etapa 0: arquitectura, modelo de datos y pantallas. Nada de esto está construido todavía; es la propuesta a aprobar antes de empezar a programar.
+Arquitectura, modelo de datos y pantallas (aprobada). Etapa 1 hecha; el resto se construye por etapas. La demo de referencia está en [`demo/nevada-demo.html`](demo/nevada-demo.html).
 
 ---
 
@@ -206,7 +206,6 @@ Nada de esto se simula: sin estas cuentas, esa parte queda marcada como "falta c
 | Dominio **nevadaproducciones.com** | Dirección de la web (www.nevadaproducciones.com) y remitente de los mails | Comprarlo en un registrador de .com (Cloudflare, Namecheap, GoDaddy, Hostinger, etc.). Después: conectarlo en Vercel (Settings → Domains) y verificarlo en Resend. |
 | Cuenta de **Mercado Pago** (vendedor) | Cobrar con Checkout Pro | mercadopago.com.ar/developers → Tus integraciones → Crear aplicación (Checkout Pro). Primero credenciales de **prueba**, después las de **producción**. También la clave secreta de webhooks. |
 | Precios, cupos, fecha y lugar | Configurar el evento | Se cargan desde el panel admin. |
-| Reglas de comisión | Calcular comisiones | **Monto fijo por entrada**: $X por General y $Y por +25 (se configura desde el admin). |
-| Imagen de referencia de Tokyo Club | Ajustar el diseño | No me llegó adjunta; si me la pasás la tomo como guía visual. |
+| Reglas de comisión | Calcular comisiones | **Monto fijo por entrada**, definido por tipo de entrada en cada evento (se configura desde el admin). |
 
 Las claves van en variables de entorno (`.env.local` en desarrollo, panel de Vercel en producción) y nunca se suben al repo.

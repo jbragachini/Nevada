@@ -1,0 +1,154 @@
+# Nevada Producciones — Plataforma de venta y control de entradas
+
+Este archivo es el traspaso del proyecto para Claude Code. Leelo completo antes de tocar código. Después leé `docs/ARQUITECTURA.md` (modelo de datos, pantallas y etapas) y `docs/SEGURIDAD.md` (plan de seguridad).
+
+- **Dueño:** Joaquín (Nevada Producciones, Oncativo, Córdoba, Argentina). Escribe en español rioplatense: respondele igual, claro y sin jerga técnica.
+- **Primer evento:** «Navidad con Nevada 2026», jueves 24 de diciembre de 2026, 23:59 h, Oncativo. DJ Nacho Heisecke. Lugar a confirmar.
+- **Dominio:** www.nevadaproducciones.com (todavía no está comprado).
+- **Repo:** github.com/jbragachini/Nevada. Rama de trabajo `etapa-1-venta`; `main` solo tiene el README inicial. No pushear a `main` sin que lo pida.
+
+## Regla de oro
+
+**No simular pagos, envíos de mails ni validaciones.** Lo que dependa de una cuenta que todavía no existe (Supabase, Mercado Pago, Resend) queda deshabilitado y marcado como «falta configurar». Separar siempre lo terminado de lo que requiere configuración. Nunca contraseñas en texto plano ni claves privadas en el navegador.
+
+## La referencia visual y funcional: la demo
+
+`docs/demo/nevada-demo.html` es una demo interactiva en un solo archivo (JS puro, datos en localStorage) que Joaquín ya probó y aprobó. **Es la especificación de cómo tiene que verse y comportarse la plataforma real.** Abrila en el navegador.
+
+- Usuarios de prueba: `admin / nevada2026` (todo + Puerta), `lucas / lucas123`, `martina / martina123`, `tomas / tomas123` (RRPP).
+- Lo que en la demo es simulado (el paso por Mercado Pago, el mail, la cámara por foto) en la plataforma real se hace de verdad.
+- Para entrar como RRPP o admin: botón «Ir al ingreso…» abajo. En la web real es `/ingresar`, sin link visible.
+
+## Marca
+
+- **Paleta:**
+  - noche `#061a36`
+  - profundo `#0c3466`
+  - azul `#1b5590`
+  - hielo `#a9dcff`
+  - blanco
+- **Logo elegido:** montaña de tres picos arriba y las letras NE/VA/DA apiladas, todo en azul, con «PRODUCCIONES» debajo.
+  - Componente: `src/components/NevadaLogo.tsx`.
+  - Path de las letras: `src/components/nevada-letters-path.ts` y `public/brand/nevada-letras.svg`.
+- **Tipografías:** Archivo (ancho variable, para los títulos) y Montserrat.
+- **Fondo:** azul noche con nieve sutil (`Snowfall.tsx`) y tarjeta blanca central tipo ticket.
+
+## Reglas de negocio (versión final acordada)
+
+### Página de venta (comprador, sin cuenta)
+- Muestra **un solo evento**: el que el admin puso «en la página». Poner otro reemplaza al anterior.
+- El comprador ve:
+  - los tipos de entrada con su precio y un selector de cantidad;
+  - sus datos: nombre, apellido, mail y WhatsApp opcional;
+  - **«¿Quién te vendió? (opcional)»**, una lista de RRPP con la opción «Nadie, compro directo»;
+  - el total y el botón **«Pagar con Mercado Pago»** (Checkout Pro).
+- No hay sección «Cómo se paga», ni cuenta regresiva, ni «Mis pedidos».
+- Cada RRPP tiene un link `/?rrpp=codigo` que lo deja preseleccionado.
+- **Flujo de pago:**
+  1. El comprador paga en Mercado Pago.
+  2. El webhook firmado marca el pedido como *pagado*.
+  3. El admin revisa y **aprueba**.
+  4. Recién ahí se emiten los QR y se mandan por mail.
+- **Seguimiento:** pantalla de confirmación («¡PAGO RECIBIDO!», nº de pedido) y link privado en el mail (`/pedido/[token]`) para ver el estado y descargar las entradas.
+- Mercado Pago cobra comisión por venta. Joaquín lo sabe y lo aceptó.
+
+### RRPP (vendedores)
+- Se registran con usuario y contraseña desde `/ingresar` y quedan **pendientes** hasta que el admin los aprueba.
+- Cada RRPP ve **solo lo suyo**: ventas, comisiones y lo que debe rendir.
+- **Comisión:** monto fijo por entrada, definido **por tipo de entrada y por evento**. Se gana sobre los pedidos aprobados, tanto los que cargó él como las compras web que lo eligieron.
+- **Carga de ventas por el RRPP:**
+  - Elige el evento (entre los que tienen ventas abiertas), los tipos y las cantidades.
+  - Carga **una persona por entrada**: nombre obligatorio, mail opcional (si falta, se usa el de la persona 1; el de la persona 1 es obligatorio).
+  - Cada persona recibe **su propio QR a su nombre**.
+  - Indica cómo le pagaron:
+    - **Efectivo:** los QR se generan **al instante**, sin aprobación, y rinde el total.
+    - **Transferencia a él:** queda pendiente hasta que el admin la confirma con el RRPP por WhatsApp, y rinde el total.
+    - **Transferencia a la cuenta de Nevada:** queda pendiente hasta que el admin ve el ingreso. **No rinde.**
+- **Compras en la web que lo eligieron:** el comprador le paga directo a Nevada, así que el RRPP **no rinde**, pero **sí cobra comisión**.
+- **Rendición:**
+  - El RRPP siempre rinde **el total** de lo que cobró a su nombre. La comisión se le paga aparte, después.
+  - La rendición se cuenta por separado: **efectivo** y **transferencias a su nombre**.
+- Panel del RRPP:
+  - entradas vendidas, vendido, comisión generada / cobrada / pendiente;
+  - «Tenés que rendir», con efectivo y transferencias por separado;
+  - su link personal y sus ventas, con los QR de las que cargó.
+
+### Admin
+- Ve todo. **Solo el admin tiene la Puerta** (el escáner).
+- **Eventos:**
+  - **Crear:** se crea como borrador con General y +25 por defecto, sin publicar.
+  - **Editar:**
+    - datos: nombre, DJ o subtítulo, fecha, lugar, ciudad, descripción y flyer;
+    - tipos de entrada **libres**: agregar, renombrar, cambiar precio, cupo y comisión, y ponerlos o sacarlos de la venta;
+    - un tipo con ventas no se borra, se pasa a «no a la venta»;
+    - el cupo no puede quedar por debajo de lo vendido.
+  - **Duplicar** un evento.
+  - **Eliminar**, solo si no tiene ventas y con confirmación.
+  - Poner un evento en la página o sacarlo, y abrir o cerrar sus ventas.
+  - Todo el panel trabaja sobre el evento elegido en un selector arriba.
+- **Por aprobar:** compras web, transferencias a Nevada y transferencias al RRPP. Botones Aprobar (emite y envía los QR) y Rechazar.
+- **Ventas por vendedor:**
+  - filtros por vendedor (todos, sin RRPP o un RRPP), estado (por aprobar, aprobado, rechazado) y alcance (este evento o todos), más búsqueda por comprador o número de pedido;
+  - resumen de lo filtrado: pedidos, entradas aprobadas, vendido y comisión generada;
+  - el botón «Ver ventas» en Comisiones y en Usuarios abre este filtro con ese RRPP.
+- **Comisiones y rendiciones:**
+  - por RRPP: generada, pagada y pendiente, con «Pagar»;
+  - rendiciones con lo que debe en efectivo y en transferencias, con «Recibí» (montos separados);
+  - historial de movimientos.
+- **RRPP y accesos:** pedidos de acceso (aprobar o rechazar) y lista de usuarios.
+- **Entradas y QR:** emitidas, usadas y anuladas, con opción de anular.
+
+### Puerta (solo admin, `/admin/puerta`)
+- Cámara del celular leyendo en vivo (`html5-qrcode`). Resultado grande y en color:
+  - **VÁLIDA:** verde.
+  - **YA UTILIZADA:** naranja, con la hora del primer ingreso.
+  - **INVÁLIDA:** rojo.
+  - **ANULADA:** gris.
+- Validación **atómica en el servidor**: si dos celulares leen la misma entrada, solo el primero entra.
+- Contador de ingresos y campo para escribir el código a mano.
+
+## Stack
+
+Next.js 15 (App Router) · TypeScript · Tailwind 4 · Supabase (Postgres + Auth + Storage + RLS) · Zod · Mercado Pago Checkout Pro con webhooks firmados · Resend · QR con token aleatorio firmado con HMAC · Vercel.
+
+## Estado actual
+
+**Hecho (rama `etapa-1-venta`):**
+- **Etapa 1, página pública de venta** (`src/app/page.tsx`, `src/components/TicketForm.tsx`):
+  - diseño Nevada, tipos de entrada, datos del comprador, selector de RRPP con `?rrpp=`, total, ventas cerradas o agotadas;
+  - el botón de pago está **deshabilitado a propósito** (`checkoutEnabled={false}`) hasta tener pedidos y Mercado Pago;
+  - sin Supabase muestra una vista previa con datos de ejemplo (`src/lib/storefront.ts`).
+- **Migraciones:**
+  - `supabase/migrations/0001_evento_y_entradas.sql`: evento, tipos de entrada, vista pública y RLS;
+  - `supabase/migrations/0002_rrpp.sql`: sellers y vista pública de RRPP.
+  - Ojo: son anteriores a la decisión de **varios eventos** y **tipos libres**. Hay que llevarlas al modelo de `docs/ARQUITECTURA.md`: tabla `events` con `publicado` único, `ticket_types` con `comision_rrpp` y `en_venta`, `order_attendees`, `seller_settlements`, `access_requests`, etc.
+- Documentación completa en `docs/`.
+
+**Siguiente, en orden** (ver la tabla de etapas en ARQUITECTURA):
+1. **Etapa 2:** modelo de datos definitivo (varios eventos, tipos libres), RLS y creación real de pedidos con cálculo de montos en el servidor.
+2. **Etapa 3:** `/ingresar` (Supabase Auth, registro de RRPP pendiente de aprobación) y panel del RRPP con carga de ventas.
+3. **Etapa 4:** admin completo (eventos, por aprobar, ventas por vendedor, comisiones y rendiciones, accesos, auditoría).
+4. **Etapa 5:** Mercado Pago Checkout Pro y webhook.
+5. **Etapa 6:** entradas por mail (QR, PDF con diseño Nevada, Resend).
+6. **Etapa 7:** Puerta.
+7. **Etapa 8:** pruebas de permisos, revisión de RLS y despliegue.
+
+Trabajá por etapas, mostrando el avance, y cada etapa en commits claros.
+
+## Cuentas que faltan (las tiene que crear Joaquín)
+
+- **Supabase:** URL del proyecto, `anon key` y `service_role key` (esta última solo en el servidor).
+- **Mercado Pago:** credenciales de prueba y después de producción, más la clave secreta del webhook.
+- **Resend,** con el dominio verificado.
+- **Vercel,** conectado al repo.
+- **Dominio** `nevadaproducciones.com` (pasos en el README).
+
+Las variables están listadas en `.env.example`. Nunca se suben al repo.
+
+## Cómo correrlo
+
+```bash
+npm install
+cp .env.example .env.local   # completar cuando existan las cuentas
+npm run dev                  # http://localhost:3000
+```
