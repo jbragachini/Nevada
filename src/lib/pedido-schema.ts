@@ -37,3 +37,12 @@ export type PedidoResult = {
   /** Errores por campo (nombre, apellido, email, whatsapp, cantidad, rrpp). */
   fieldErrors?: Record<string, string>;
 };
+
+export const invitacionSchema = z.object({
+  eventId: z.string().uuid(),
+  email: z.string().trim().max(254).email(),
+});
+
+export type InvitacionResult =
+  | { ok: true; nombre: string; restantes: number; email: string }
+  | { ok: false; error: string };

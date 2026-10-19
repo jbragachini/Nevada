@@ -1,4 +1,5 @@
 import { EventHeader } from "@/components/EventHeader";
+import { InvitacionGate } from "@/components/InvitacionGate";
 import { NevadaLogo } from "@/components/NevadaLogo";
 import { TicketForm } from "@/components/TicketForm";
 import { TicketShell } from "@/components/TicketShell";
@@ -77,23 +78,21 @@ function Body({
     : undefined;
 
   const checkout = sf.mode === "live" ? getCheckout() : null;
+  const formProps = {
+    eventId: sf.event.id,
+    tickets: sf.tickets,
+    rrpps: sf.rrpps,
+    initialRrppId,
+    mostrarRrpp: sf.event.mostrarRrpp,
+    checkout: checkout?.habilitado ? checkout.modo : null,
+    disabledReason: !checkout
+      ? "Compra deshabilitada en la vista previa."
+      : checkout.habilitado
+        ? undefined
+        : checkout.motivo,
+  };
 
-  return (
-    <TicketForm
-      eventId={sf.event.id}
-      tickets={sf.tickets}
-      rrpps={sf.rrpps}
-      initialRrppId={initialRrppId}
-      checkout={checkout?.habilitado ? checkout.modo : null}
-      disabledReason={
-        !checkout
-          ? "Compra deshabilitada en la vista previa."
-          : checkout.habilitado
-            ? undefined
-            : checkout.motivo
-      }
-    />
-  );
+  return sf.event.acceso === "invitacion" ? <InvitacionGate {...formProps} /> : <TicketForm {...formProps} />;
 }
 
 function Notice({ title, children }: { title: string; children: React.ReactNode }) {

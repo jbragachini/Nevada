@@ -39,6 +39,7 @@ create table public.sellers (
   nombre_publico      text        not null check (char_length(nombre_publico) between 2 and 80),
   codigo              text        not null unique check (codigo ~ '^[a-z0-9-]{2,30}$'),
   puede_cargar_ventas boolean     not null default true,
+  max_invitados       integer     check (max_invitados >= 0),   -- tope de invitados por evento; vacío = sin tope
   activo              boolean     not null default true,
   creado_en           timestamptz not null default now()
 );

@@ -3,6 +3,8 @@
 --   • Vistas públicas: el evento en la página, sus tipos con lo disponible y los RRPP activos.
 --   • crear_pedido_web(): crea el pedido de una compra web, con montos calculados acá.
 --   • pedido_por_token(): estado del pedido para el link privado /pedido/[token].
+--   • verificar_invitacion(): en un evento con invitación, si el mail está en la lista y cuántas
+--     entradas le quedan.
 -- Las funciones solo las puede llamar el servidor (service_role), nunca el navegador.
 
 -- ─────────────────────────────────────────────────────────────
@@ -57,7 +59,7 @@ create trigger ticket_types_cupo_minimo
 -- ─────────────────────────────────────────────────────────────
 create or replace view public.storefront_event as
 select e.id, e.nombre, e.subtitulo, e.fecha_inicio, e.lugar, e.direccion, e.ciudad,
-       e.descripcion, e.flyer_path, e.ventas_abiertas
+       e.descripcion, e.flyer_path, e.ventas_abiertas, e.acceso, e.mostrar_rrpp
 from public.events e
 where e.publicado;
 
@@ -89,10 +91,105 @@ grant select on public.storefront_event, public.storefront_ticket_types, public.
   to anon, authenticated;
 
 -- ─────────────────────────────────────────────────────────────
+-- Invitados
+-- ─────────────────────────────────────────────────────────────
+
+-- Entradas que ya usó cada invitado (mismos estados que ocupan cupo).
+create or replace view public.event_guest_ocupacion as
+select
+  g.id as guest_id,
+  coalesce(sum(i.cantidad) filter (
+    where o.status in ('pagado', 'por_confirmar', 'aprobado')
+       or (o.status = 'pendiente_pago' and o.vence_en > now())
+  ), 0)::integer as usadas
+from public.event_guests g
+left join public.orders o on o.invitado_id = g.id
+left join public.order_items i on i.order_id = o.id
+group by g.id;
+
+revoke all on public.event_guest_ocupacion from anon, authenticated;
+
+-- Tope de invitados por RRPP y por evento (sellers.max_invitados).
+create or replace function public.event_guests_tope()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_tope integer;
+  v_cargados integer;
+begin
+  if new.seller_id is null or not new.activo then
+    return new;
+  end if;
+  select s.max_invitados into v_tope from public.sellers s where s.id = new.seller_id;
+  if v_tope is null then
+    return new;
+  end if;
+  -- Bloquea al RRPP para que dos altas simultáneas no pasen el tope.
+  perform 1 from public.sellers s where s.id = new.seller_id for update;
+  select count(*) into v_cargados from public.event_guests g
+  where g.seller_id = new.seller_id and g.event_id = new.event_id and g.activo and g.id <> new.id;
+  if v_cargados >= v_tope then
+    raise exception 'NEV:tope_invitados' using detail = v_tope::text;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger event_guests_tope
+  before insert or update of activo, seller_id, event_id on public.event_guests
+  for each row execute function public.event_guests_tope();
+
+-- Intentos de verificación por IP (para que no se pueda adivinar la lista probando mails).
+create table public.invite_checks (
+  id        bigint generated always as identity primary key,
+  ip_hash   text        not null,
+  creado_en timestamptz not null default now()
+);
+create index invite_checks_ip on public.invite_checks (ip_hash, creado_en);
+alter table public.invite_checks enable row level security;
+revoke all on public.invite_checks from anon, authenticated;
+
+-- ¿Este mail está invitado? Devuelve nombre, máximo y lo que le queda, o null.
+-- Hasta 10 consultas cada 10 minutos por IP.
+create or replace function public.verificar_invitacion(p_event_id uuid, p_email text, p_ip_hash text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if p_ip_hash is not null then
+    if (select count(*) from public.invite_checks c
+        where c.ip_hash = p_ip_hash and c.creado_en > now() - interval '10 minutes') >= 10 then
+      raise exception 'NEV:demasiados_intentos';
+    end if;
+    insert into public.invite_checks (ip_hash) values (p_ip_hash);
+    delete from public.invite_checks c where c.creado_en < now() - interval '1 day';
+  end if;
+
+  return (
+    select jsonb_build_object(
+      'nombre', g.nombre,
+      'max_entradas', g.max_entradas,
+      'restantes', greatest(g.max_entradas - oc.usadas, 0)
+    )
+    from public.event_guests g
+    join public.events e on e.id = g.event_id and e.publicado and e.acceso = 'invitacion'
+    join public.event_guest_ocupacion oc on oc.guest_id = g.id
+    where g.event_id = p_event_id and g.email = lower(btrim(p_email)) and g.activo
+  );
+end;
+$$;
+
+-- ─────────────────────────────────────────────────────────────
 -- Crear pedido web.
 -- Controles: evento en la página y con ventas abiertas, tipos del evento y a la venta, cantidades
 -- dentro del máximo, cupo (con los tipos bloqueados mientras se cuenta, así dos compras a la vez
--- no sobrevenden), RRPP activo, límite de pedidos por IP y por mail, y pedido único por
+-- no sobrevenden), RRPP activo, lista de invitados si el evento es con invitación (la venta queda
+-- para el RRPP que invitó), límite de pedidos por IP y por mail, y pedido único por
 -- idempotency_key (un doble click o un reintento devuelven el mismo pedido).
 -- Los errores salen con el prefijo NEV: y un código que el servidor traduce para el comprador.
 -- ─────────────────────────────────────────────────────────────
@@ -117,6 +214,9 @@ as $$
 declare
   v_plazo    constant interval := interval '30 minutes';
   v_event     public.events%rowtype;
+  v_guest     public.event_guests%rowtype;
+  v_restantes integer;
+  v_seller_id uuid := p_seller_id;
   v_tipo      public.ticket_types%rowtype;
   v_item      record;
   v_ocupadas  integer;
@@ -153,6 +253,20 @@ begin
     raise exception 'NEV:rrpp_no_disponible';
   end if;
 
+  -- Evento con invitación: solo la lista. Se bloquea al invitado para que dos compras a la vez
+  -- no pasen su máximo.
+  if v_event.acceso = 'invitacion' then
+    select * into v_guest from public.event_guests g
+    where g.event_id = p_event_id and g.email = v_email and g.activo
+    for update;
+    if not found then
+      raise exception 'NEV:no_invitado';
+    end if;
+    select greatest(v_guest.max_entradas - oc.usadas, 0) into v_restantes
+    from public.event_guest_ocupacion oc where oc.guest_id = v_guest.id;
+    v_seller_id := coalesce(v_guest.seller_id, p_seller_id);
+  end if;
+
   -- Límites anti abuso.
   if p_ip_hash is not null and (
        select count(*) from public.orders o
@@ -172,10 +286,10 @@ begin
 
   insert into public.orders (
     event_id, comprador_nombre, comprador_apellido, comprador_email, comprador_whatsapp,
-    seller_id, origen, metodo_pago, total, status, vence_en, idempotency_key, token_hash, ip_hash
+    seller_id, invitado_id, origen, metodo_pago, total, status, vence_en, idempotency_key, token_hash, ip_hash
   ) values (
     p_event_id, btrim(p_nombre), btrim(p_apellido), v_email, nullif(btrim(p_whatsapp), ''),
-    p_seller_id, 'web', 'mercadopago', 0, 'pendiente_pago', now() + v_plazo,
+    v_seller_id, v_guest.id, 'web', 'mercadopago', 0, 'pendiente_pago', now() + v_plazo,
     p_idempotency_key, p_token_hash, p_ip_hash
   )
   returning id, orders.numero into v_order_id, v_numero;
@@ -218,6 +332,9 @@ begin
 
   if v_unidades > 20 then
     raise exception 'NEV:cantidad_maxima';
+  end if;
+  if v_guest.id is not null and v_unidades > v_restantes then
+    raise exception 'NEV:supera_invitacion' using detail = v_restantes::text;
   end if;
 
   update public.orders o set total = v_total where o.id = v_order_id;
@@ -279,6 +396,8 @@ $$;
 revoke execute on function public.crear_pedido_web(uuid, jsonb, text, text, text, text, uuid, uuid, text, text)
   from public, anon, authenticated;
 revoke execute on function public.pedido_por_token(text) from public, anon, authenticated;
+revoke execute on function public.verificar_invitacion(uuid, text, text) from public, anon, authenticated;
+grant execute on function public.verificar_invitacion(uuid, text, text) to service_role;
 grant execute on function public.crear_pedido_web(uuid, jsonb, text, text, text, text, uuid, uuid, text, text)
   to service_role;
 grant execute on function public.pedido_por_token(text) to service_role;

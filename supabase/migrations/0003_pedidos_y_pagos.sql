@@ -15,6 +15,28 @@
 create sequence public.order_numero_seq;
 
 -- ─────────────────────────────────────────────────────────────
+-- Lista de invitados (eventos con acceso = 'invitacion')
+-- Solo compra quien está en la lista, hasta max_entradas entre todos sus pedidos.
+-- La cargan el admin y los RRPP; lo que invita un RRPP queda a su nombre para la comisión.
+-- ─────────────────────────────────────────────────────────────
+create table public.event_guests (
+  id           uuid primary key default gen_random_uuid(),
+  event_id     uuid        not null references public.events(id) on delete cascade,
+  email        text        not null check (email = lower(email)
+                                           and email ~* '^[^@\s]+@[^@\s]+\.[^@\s]+$'
+                                           and char_length(email) <= 254),
+  nombre       text        not null check (char_length(nombre) between 2 and 120),
+  max_entradas integer     not null default 1 check (max_entradas between 1 and 20),
+  seller_id    uuid        references public.sellers(id) on delete restrict, -- null = invitado por Nevada
+  creado_por   uuid        references public.profiles(id) on delete set null,
+  activo       boolean     not null default true,
+  creado_en    timestamptz not null default now(),
+  unique (event_id, email)
+);
+
+create index event_guests_seller on public.event_guests (seller_id, event_id);
+
+-- ─────────────────────────────────────────────────────────────
 -- Pedidos
 -- ─────────────────────────────────────────────────────────────
 create table public.orders (
@@ -28,6 +50,7 @@ create table public.orders (
                                                  and char_length(comprador_email) <= 254),
   comprador_whatsapp text        check (comprador_whatsapp ~ '^[0-9+\s()-]{8,20}$'),
   seller_id          uuid        references public.sellers(id) on delete restrict, -- null = venta directa
+  invitado_id        uuid        references public.event_guests(id) on delete restrict, -- eventos con invitación
   origen             text        not null check (origen in ('web', 'rrpp')),
   metodo_pago        text        not null check (metodo_pago in
                                  ('mercadopago', 'efectivo_rrpp', 'transferencia_rrpp', 'transferencia_nevada')),

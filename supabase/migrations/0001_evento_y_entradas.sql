@@ -1,6 +1,8 @@
 -- Nevada Producciones
 -- 0001: eventos y tipos de entrada.
 -- Varios eventos editables; uno solo «en la página» (publicado) a la vez.
+-- Cada evento es público o con invitación (solo compra quien está en la lista de invitados), y
+-- puede mostrar u ocultar «¿Quién te vendió?». El admin cambia las dos cosas cuando quiera.
 -- Tipos de entrada libres por evento, con precio, cupo y comisión fija para el RRPP.
 
 create extension if not exists pgcrypto;
@@ -32,6 +34,8 @@ create table public.events (
   flyer_path      text,                                                      -- Storage público
   publicado       boolean     not null default false,                        -- es el evento de la página de venta
   ventas_abiertas boolean     not null default false,
+  acceso          text        not null default 'publico' check (acceso in ('publico', 'invitacion')),
+  mostrar_rrpp    boolean     not null default true,                         -- «¿Quién te vendió?» en la página
   creado_por      uuid        references auth.users(id) on delete set null,
   creado_en       timestamptz not null default now(),
   actualizado_por uuid        references auth.users(id) on delete set null,

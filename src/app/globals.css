@@ -11,6 +11,9 @@
   --muted: #4a5d75;   /* texto secundario sobre blanco (4.5:1+) */
   --line: #d9e6f2;
   --danger: #b42318;
+  --ok: #1f7a3d;      /* aprobado */
+  --warn: #b45309;    /* a rendir, por aprobar */
+  --void: #4b5563;    /* anulado, vencido */
   --font-display: "Archivo Variable", "Arial Black", sans-serif;
   --font-body: "Montserrat Variable", system-ui, sans-serif;
 }
@@ -25,6 +28,9 @@
   --color-muted: var(--muted);
   --color-line: var(--line);
   --color-danger: var(--danger);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-void: var(--void);
   --font-display: var(--font-display);
   --font-sans: var(--font-body);
 }

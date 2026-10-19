@@ -12,7 +12,9 @@ Traspaso para Claude Code en [`CLAUDE.md`](CLAUDE.md); demo de referencia en `do
 |---|---|
 | 1. Página pública de venta | ✅ Terminada (diseño, selección de entradas, datos del comprador, medio de pago, total, ventas cerradas / agotadas) |
 | 2. Pedidos y base de datos | ✅ Terminada (modelo de datos completo, seguridad por filas, creación real de pedidos con montos y cupo calculados en la base, link privado de seguimiento `/pedido/[token]`) |
-| 3–8 | ⏳ Pendientes |
+| 3. Panel de vendedores | ✅ Terminada (`/ingresar` con usuario o mail, pedido de acceso de RRPP pendiente de aprobación, panel con métricas, comisiones, lo que hay que rendir, link personal, ventas con QR, carga de ventas con una persona por entrada, lista de invitados) |
+| Eventos con invitación | ✅ Cada evento es público o con invitación (solo compra quien está en la lista, hasta su máximo de entradas); se puede ocultar «¿Quién te vendió?» |
+| 4–8 | ⏳ Pendientes |
 
 **Medio de pago:** Mercado Pago (Checkout Pro). El comprador paga el total en Mercado Pago; el pedido queda *pagado* solo cuando Mercado Pago lo confirma al servidor, y las entradas con QR se liberan cuando el administrador aprueba el pedido. Mercado Pago cobra comisión por cada venta según el plazo de acreditación elegido.
 
@@ -44,10 +46,28 @@ scripts/probar-base.sh       # aplica todas las migraciones en una base descarta
 5. Cargar los RRPP (mientras no exista el panel admin):
    `insert into sellers (nombre_publico, codigo) values ('Nombre Apellido', 'nombre');`
    Su link personal será `https://www.nevadaproducciones.com/?rrpp=nombre`.
-6. Precios, cupos y comisión por entrada (mientras no exista el panel admin):
+6. En **Authentication → Sign In / Providers**: dejar habilitado **Email** y **desactivar «Allow new users to sign up»** (los RRPP piden acceso desde `/ingresar`, que crea el usuario desde el servidor; nadie se registra por su cuenta). Desactivar también «Confirm email».
+7. Crear tu usuario de admin: **Authentication → Users → Add user** (mail y contraseña), copiar su `UID` y en el SQL Editor:
+   `insert into profiles (id, nombre, usuario, rol, activo) values ('UID', 'Joaquín', 'admin', 'admin', true);`
+8. Generar `QR_SIGNING_SECRET` con `openssl rand -hex 32`.
+9. Precios, cupos y comisión por entrada (mientras no exista el panel admin):
    `update ticket_types set precio = 15000, cupo_total = 400, comision_rrpp = 1000 where nombre = 'Entrada General';`
-7. Para abrir las ventas mientras no exista el panel admin:
+10. Para abrir las ventas mientras no exista el panel admin:
    `update events set ventas_abiertas = true where publicado;`
+
+### Mientras no exista el panel admin (etapa 4)
+
+- **Aprobar un RRPP** que pidió acceso (reemplazar `lucas` por su usuario y elegir su código de link):
+  ```sql
+  update profiles set activo = true where usuario = 'lucas';
+  update access_requests set estado = 'aprobada' where profile_id = (select id from profiles where usuario = 'lucas');
+  insert into sellers (profile_id, nombre_publico, codigo)
+    select id, nombre, 'lucas' from profiles where usuario = 'lucas';
+  ```
+- **Evento con invitación o público:** `update events set acceso = 'invitacion' where publicado;` (o `'publico'`).
+- **Mostrar u ocultar «¿Quién te vendió?»:** `update events set mostrar_rrpp = false where publicado;`
+- **Tope de invitados de un RRPP** por evento: `update sellers set max_invitados = 20 where codigo = 'lucas';` (`null` = sin tope).
+- **Invitar desde Nevada:** `insert into event_guests (event_id, email, nombre, max_entradas) select id, 'mail@ejemplo.com', 'Nombre', 2 from events where publicado;`
 
 ## Dominio: www.nevadaproducciones.com (falta comprarlo y conectarlo)
 

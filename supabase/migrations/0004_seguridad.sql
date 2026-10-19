@@ -49,6 +49,7 @@ grant execute on function public.mi_seller_id() to authenticated, service_role;
 -- (service_role, que solo usa el servidor, la saltea.)
 -- ─────────────────────────────────────────────────────────────
 alter table public.events             enable row level security;
+alter table public.event_guests       enable row level security;
 alter table public.ticket_types       enable row level security;
 alter table public.profiles           enable row level security;
 alter table public.access_requests    enable row level security;
@@ -81,6 +82,8 @@ create policy "admin gestiona accesos" on public.access_requests
   for all to authenticated using (public.es_admin()) with check (public.es_admin());
 create policy "admin gestiona rrpp" on public.sellers
   for all to authenticated using (public.es_admin()) with check (public.es_admin());
+create policy "admin gestiona invitados" on public.event_guests
+  for all to authenticated using (public.es_admin()) with check (public.es_admin());
 
 create policy "admin lee pedidos"      on public.orders             for select to authenticated using (public.es_admin());
 create policy "admin lee items"        on public.order_items        for select to authenticated using (public.es_admin());
@@ -106,14 +109,30 @@ create policy "cada uno ve su pedido de acceso" on public.access_requests
 create policy "rrpp ve su ficha" on public.sellers
   for select to authenticated using (id = public.mi_seller_id());
 
--- Eventos con ventas abiertas y sus tipos (incluida la comisión): para cargar ventas.
+-- Eventos con ventas abiertas (para cargar ventas) y el evento con invitación que está en la página
+-- (para armar su lista de invitados), con sus tipos, incluida la comisión.
 create policy "rrpp ve eventos en venta" on public.events
-  for select to authenticated using (ventas_abiertas and public.mi_seller_id() is not null);
+  for select to authenticated using (
+    public.mi_seller_id() is not null and (ventas_abiertas or (publicado and acceso = 'invitacion'))
+  );
 create policy "rrpp ve tipos en venta" on public.ticket_types
   for select to authenticated using (
     public.mi_seller_id() is not null
-    and exists (select 1 from public.events e where e.id = event_id and e.ventas_abiertas)
+    and exists (select 1 from public.events e
+                where e.id = event_id and (e.ventas_abiertas or (e.publicado and e.acceso = 'invitacion')))
   );
+
+-- Su propia lista de invitados: la ve, agrega, edita y da de baja. Nunca la de otro RRPP.
+create policy "rrpp ve sus invitados" on public.event_guests
+  for select to authenticated using (seller_id = public.mi_seller_id());
+create policy "rrpp agrega sus invitados" on public.event_guests
+  for insert to authenticated
+  with check (seller_id = public.mi_seller_id() and creado_por = auth.uid());
+create policy "rrpp edita sus invitados" on public.event_guests
+  for update to authenticated
+  using (seller_id = public.mi_seller_id()) with check (seller_id = public.mi_seller_id());
+create policy "rrpp borra sus invitados" on public.event_guests
+  for delete to authenticated using (seller_id = public.mi_seller_id());
 
 create policy "rrpp ve sus ventas" on public.orders
   for select to authenticated using (seller_id = public.mi_seller_id());

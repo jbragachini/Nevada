@@ -16,6 +16,10 @@ type Props = {
   /** "prueba": registra pedidos sin cobrar (hasta que esté Mercado Pago). null: compra apagada. */
   checkout: "prueba" | null;
   disabledReason?: string;
+  /** false: no se muestra «¿Quién te vendió?» (el RRPP del link igual queda asignado). */
+  mostrarRrpp?: boolean;
+  /** Evento con invitación: mail fijo y tope de entradas del invitado. */
+  invitado?: { email: string; restantes: number };
 };
 
 type Buyer = { nombre: string; apellido: string; email: string; whatsapp: string };
@@ -23,9 +27,23 @@ type Buyer = { nombre: string; apellido: string; email: string; whatsapp: string
 // Orden de los campos en pantalla: al fallar el envío, el foco va al primero con error.
 const CAMPOS = ["cantidad", "nombre", "apellido", "email", "whatsapp", "rrpp"] as const;
 
-export function TicketForm({ eventId, tickets, rrpps, initialRrppId, checkout, disabledReason }: Props) {
+export function TicketForm({
+  eventId,
+  tickets,
+  rrpps,
+  initialRrppId,
+  checkout,
+  disabledReason,
+  mostrarRrpp = true,
+  invitado,
+}: Props) {
   const [qty, setQty] = useState<Record<string, number>>({});
-  const [buyer, setBuyer] = useState<Buyer>({ nombre: "", apellido: "", email: "", whatsapp: "" });
+  const [buyer, setBuyer] = useState<Buyer>({
+    nombre: "",
+    apellido: "",
+    email: invitado?.email ?? "",
+    whatsapp: "",
+  });
   const [rrppId, setRrppId] = useState<string>(initialRrppId ?? "");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [serverError, setServerError] = useState<string | null>(null);
@@ -56,10 +74,16 @@ export function TicketForm({ eventId, tickets, rrpps, initialRrppId, checkout, d
     });
   }
 
+  // Con invitación, el total no puede pasar lo que le queda al invitado.
+  const tope = invitado ? invitado.restantes : Infinity;
+
+  function maxDe(t: StorefrontTicket) {
+    return Math.min(t.maxPorCompra, t.disponibles, tope - totalUnidades + (qty[t.id] ?? 0));
+  }
+
   function change(t: StorefrontTicket, delta: number) {
     setQty((prev) => {
-      const max = Math.min(t.maxPorCompra, t.disponibles);
-      const next = Math.max(0, Math.min(max, (prev[t.id] ?? 0) + delta));
+      const next = Math.max(0, Math.min(maxDe(t), (prev[t.id] ?? 0) + delta));
       return { ...prev, [t.id]: next };
     });
     clearError("cantidad");
@@ -161,7 +185,7 @@ export function TicketForm({ eventId, tickets, rrpps, initialRrppId, checkout, d
           const q = qty[t.id] ?? 0;
           const agotada = t.disponibles <= 0;
           const sinVenta = !t.enVenta;
-          const max = Math.min(t.maxPorCompra, t.disponibles);
+          const max = maxDe(t);
           const pocas = !agotada && t.disponibles <= 20;
           return (
             <div
@@ -210,6 +234,11 @@ export function TicketForm({ eventId, tickets, rrpps, initialRrppId, checkout, d
             </div>
           );
         })}
+        {invitado && (
+          <p className="text-xs text-muted">
+            Tu invitación permite hasta {invitado.restantes} entrada{invitado.restantes === 1 ? "" : "s"}.
+          </p>
+        )}
         {errorText("cantidad")}
       </fieldset>
 
@@ -239,6 +268,8 @@ export function TicketForm({ eventId, tickets, rrpps, initialRrppId, checkout, d
             autoComplete="email"
             spellCheck={false}
             placeholder="Correo electrónico"
+            readOnly={!!invitado}
+            className={invitado ? `${field} bg-frost text-muted` : field}
           />
           {errorText("email")}
         </div>
@@ -256,7 +287,7 @@ export function TicketForm({ eventId, tickets, rrpps, initialRrppId, checkout, d
       </fieldset>
 
       {/* RRPP (opcional) */}
-      {rrpps.length > 0 && (
+      {mostrarRrpp && !invitado && rrpps.length > 0 && (
         <div className="flex flex-col gap-2">
           <label
             htmlFor="rrpp"
