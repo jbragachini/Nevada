@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { hashDelToken, tokenDelPedido, tokenSecretConfigured } from "@/lib/pedido-token";
-import { contenidoQr, qrConfigurado, qrSvg } from "@/lib/qr";
+import { codigoCorto, contenidoQr, qrConfigurado, qrSvg } from "@/lib/qr";
 import { getSesion } from "@/lib/sesion";
 import { getServerSupabase } from "@/lib/supabase/server";
 
@@ -109,7 +109,9 @@ function traducirVenta(message: string, detail: string | null): Fallo {
 }
 
 /** QR de una entrada que cargó este RRPP (la base solo le devuelve las suyas). */
-export async function qrDeEntrada(ticketId: string): Promise<Resultado<{ svg: string; titular: string }>> {
+export async function qrDeEntrada(
+  ticketId: string,
+): Promise<Resultado<{ svg: string; titular: string; codigo: string }>> {
   if (!z.string().uuid().safeParse(ticketId).success) return { ok: false, error: "Entrada inválida." };
   if (!qrConfigurado()) return { ok: false, error: "Falta configurar la firma de los QR (QR_SIGNING_SECRET)." };
   const supabase = await getServerSupabase();
@@ -120,7 +122,12 @@ export async function qrDeEntrada(ticketId: string): Promise<Resultado<{ svg: st
     .eq("id", ticketId)
     .maybeSingle();
   if (!data) return { ok: false, error: "No encontramos esa entrada." };
-  return { ok: true, svg: await qrSvg(contenidoQr(data.qr_token)), titular: data.titular_nombre };
+  return {
+    ok: true,
+    svg: await qrSvg(contenidoQr(data.qr_token)),
+    titular: data.titular_nombre,
+    codigo: codigoCorto(data.qr_token),
+  };
 }
 
 const invitadoSchema = z.object({

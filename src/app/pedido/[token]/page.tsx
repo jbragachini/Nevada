@@ -7,7 +7,7 @@ import { TicketShell } from "@/components/TicketShell";
 import { getCheckout } from "@/lib/checkout";
 import { formatARS, formatEventDate, formatHora } from "@/lib/format";
 import { getPedido, type EstadoPedido, type Pedido } from "@/lib/pedido";
-import { contenidoQr, qrConfigurado, qrSvg } from "@/lib/qr";
+import { codigoCorto, contenidoQr, qrConfigurado, qrSvg } from "@/lib/qr";
 
 export const dynamic = "force-dynamic";
 
@@ -154,6 +154,11 @@ async function Entradas({ pedido }: { pedido: Pedido }) {
                 className="w-full max-w-[220px] [&>svg]:h-auto [&>svg]:w-full"
                 dangerouslySetInnerHTML={{ __html: svgs[i] }}
               />
+            )}
+            {e.status === "valida" && (
+              <p className="text-[12.5px] text-muted">
+                Código <span className="font-mono font-semibold tracking-[0.1em] text-ink">{codigoCorto(e.qrToken)}</span>
+              </p>
             )}
             {e.status !== "valida" && (
               <p className="text-sm font-bold text-muted">{e.status === "usada" ? "Ya ingresó" : "Anulada"}</p>

@@ -153,11 +153,16 @@ Next.js 15 (App Router) · TypeScript · Tailwind 4 · Supabase (Postgres + Auth
   - El comprador ve sus entradas con QR en `/pedido/[token]` cuando el pedido está aprobado (el mail llega en la etapa 6).
   - Pruebas: `supabase/tests/admin.sql` (159 controles en total) y pruebas con navegador de todo el panel.
 
+- **Etapa 7, Puerta** (se adelantó porque no depende de cuentas externas):
+  - Migración `0009_puerta.sql`: `tickets.codigo` (8 caracteres del token, único) para tipear a mano; `puerta_escanear()` (solo admin con aal2): `UPDATE … WHERE status = 'valida'` atómico + `checkins`; resultados `valida | usada | anulada | invalida` (también si es de otro evento); registra todo en `scan_attempts`; `admin_puerta_resumen()`.
+  - `src/lib/qr.ts` `leerQr()`: verifica la firma HMAC del QR (`timingSafeEqual`) antes de tocar la base; un QR falso se registra como inválido sin buscar la entrada.
+  - `/admin/puerta` (`src/components/admin/Escaner.tsx`, `html5-qrcode`, lee el cuadro completo): resultado a pantalla completa en color, vibración y sonido, código corto a mano, contador de ingresos y faltantes. El código corto se muestra debajo de cada QR (comprador y RRPP).
+  - Pruebas: `supabase/tests/puerta.sql` y 10 lecturas simultáneas de la misma entrada en `scripts/probar-base.sh` (entra una sola); prueba con navegador usando una cámara simulada con el QR.
+
 **Siguiente, en orden** (ver la tabla de etapas en ARQUITECTURA):
 1. **Etapa 5:** Mercado Pago Checkout Pro y webhook. La preferencia tiene que vencer junto con la reserva (`vence_en`, 30 minutos) y excluir medios de pago diferidos (Rapipago, Pago Fácil); un pago que llegue con el pedido ya vencido se acepta solo si queda cupo, y si no, se devuelve.
 2. **Etapa 6:** entradas por mail (QR, PDF con diseño Nevada, Resend).
-3. **Etapa 7:** Puerta.
-4. **Etapa 8:** pruebas de permisos, revisión de RLS y despliegue.
+3. **Etapa 8:** pruebas de permisos, revisión de RLS y despliegue.
 
 Trabajá por etapas, mostrando el avance, y cada etapa en commits claros.
 

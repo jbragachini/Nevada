@@ -13,6 +13,7 @@
     "@fontsource-variable/montserrat": "^5.2.7",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.58.0",
+    "html5-qrcode": "^2.3.8",
     "motion": "^14.3.0",
     "next": "15.5.4",
     "qrcode": "^1.5.4",

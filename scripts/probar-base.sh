@@ -45,7 +45,7 @@ for f in supabase/migrations/*.sql; do
 done
 
 echo "▸ Pruebas"
-for t in supabase/tests/pedidos_y_seguridad.sql supabase/tests/invitaciones_y_rrpp.sql supabase/tests/admin.sql; do
+for t in supabase/tests/pedidos_y_seguridad.sql supabase/tests/invitaciones_y_rrpp.sql supabase/tests/admin.sql supabase/tests/puerta.sql; do
   "${PSQL[@]}" -f "$t" 2>&1 | sed 's/^psql:[^ ]* NOTICE:  /  /' | grep -v '^$'
 done
 
@@ -72,5 +72,24 @@ if [[ "$VENDIDAS" != "1" ]]; then
   exit 1
 fi
 echo "  ok  10 compras simultáneas por la última entrada: se vendió 1"
+
+echo "▸ Puerta: 10 celulares leen la misma entrada a la vez"
+TOKEN="$("${PSQL[@]}" -t -A -c "select qr_token from public.tickets where status = 'valida' limit 1;")"
+EVENTO="$("${PSQL[@]}" -t -A -c "select tt.event_id from public.tickets t join public.ticket_types tt on tt.id = t.ticket_type_id where t.qr_token = '$TOKEN';")"
+for i in $(seq 1 10); do
+  "${PSQL[@]}" -t -A -c "
+    select set_config('request.jwt.claims', '{\"sub\": \"a0000000-0000-0000-0000-00000000000a\", \"aal\": \"aal2\"}', false) is null;
+    set role authenticated;
+    select public.puerta_escanear('$EVENTO', '$TOKEN', 'celular $i') ->> 'resultado';" 2>&1 | tail -1 > "$DATA/puerta-$i" &
+done
+wait
+VALIDAS="$(cat "$DATA"/puerta-* | grep -c '^valida$' || true)"
+USADAS="$(cat "$DATA"/puerta-* | grep -c '^usada$' || true)"
+if [[ "$VALIDAS" != "1" || "$USADAS" != "9" ]]; then
+  echo "FALLA: 10 lecturas simultáneas dieron $VALIDAS válidas y $USADAS usadas" >&2
+  cat "$DATA"/puerta-* >&2
+  exit 1
+fi
+echo "  ok  entró una sola vez; los otros 9 vieron «ya utilizada»"
 
 echo "✔ Todo bien"

@@ -1,5 +1,5 @@
 import "server-only";
-import { createHmac } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import QRCode from "qrcode";
 
 /**
@@ -31,4 +31,28 @@ export async function qrSvg(contenido: string): Promise<string> {
     margin: 1,
     color: { dark: "#061a36", light: "#ffffff" },
   });
+}
+
+/**
+ * Lo que leyó la Puerta: un QR firmado (NEV1.token.firma) o el código corto tipeado a mano.
+ * Devuelve qué buscar en la base, o null si no es una entrada de Nevada (firma falsa o formato desconocido).
+ */
+export function leerQr(leido: string): string | null {
+  const texto = leido.trim();
+  const m = /^NEV1\.([0-9a-f]{64})\.([A-Za-z0-9_-]{43})$/.exec(texto);
+  if (m) {
+    const s = secret();
+    if (!s) return null;
+    const esperada = Buffer.from(createHmac("sha256", s).update(`NEV1.${m[1]}`).digest("base64url"));
+    const recibida = Buffer.from(m[2]);
+    return esperada.length === recibida.length && timingSafeEqual(esperada, recibida) ? m[1] : null;
+  }
+  const codigo = texto.replace(/[\s-]/g, "").toUpperCase();
+  return /^[0-9A-F]{8}$/.test(codigo) ? codigo : null;
+}
+
+/** Código corto de una entrada, para mostrar debajo del QR: «A1B2-C3D4». */
+export function codigoCorto(qrToken: string): string {
+  const c = qrToken.slice(0, 8).toUpperCase();
+  return `${c.slice(0, 4)}-${c.slice(4)}`;
 }

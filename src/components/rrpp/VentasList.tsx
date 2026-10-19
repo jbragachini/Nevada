@@ -15,7 +15,7 @@ const COMO: Record<Venta["metodo"], string> = {
 
 export function VentasList({ ventas, porAprobar }: { ventas: Venta[]; porAprobar: number }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const [qr, setQr] = useState<{ svg: string; titular: string } | null>(null);
+  const [qr, setQr] = useState<{ svg: string; titular: string; codigo: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cargando, startTransition] = useTransition();
 
@@ -25,7 +25,7 @@ export function VentasList({ ventas, porAprobar }: { ventas: Venta[]; porAprobar
     dialogRef.current?.showModal();
     startTransition(async () => {
       const r = await qrDeEntrada(id);
-      if (r.ok) setQr({ svg: r.svg, titular: r.titular });
+      if (r.ok) setQr({ svg: r.svg, titular: r.titular, codigo: r.codigo });
       else setError(r.error ?? "No pudimos mostrar el QR.");
     });
   }
@@ -103,6 +103,11 @@ export function VentasList({ ventas, porAprobar }: { ventas: Venta[]; porAprobar
               </p>
             )}
           </div>
+          {qr && (
+            <p className="text-[12.5px] text-muted">
+              Código <span className="font-mono font-semibold tracking-[0.1em] text-ink">{qr.codigo}</span>
+            </p>
+          )}
           <p className="text-[12.5px] text-muted">Mostralo en la puerta. Es único y vale para una sola persona.</p>
           <form method="dialog" className="w-full">
             <button

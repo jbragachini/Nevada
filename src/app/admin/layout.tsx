@@ -9,6 +9,7 @@ export const metadata: Metadata = { title: "Admin · Nevada Producciones", robot
 const LINKS = [
   { href: "/admin", label: "Resumen" },
   { href: "/admin/eventos", label: "Eventos" },
+  { href: "/admin/puerta", label: "Puerta" },
   { href: "/admin/aprobar", label: "Por aprobar" },
   { href: "/admin/ventas", label: "Ventas" },
   { href: "/admin/comisiones", label: "Comisiones" },
