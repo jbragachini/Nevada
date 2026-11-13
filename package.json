@@ -15,7 +15,7 @@
     "@supabase/supabase-js": "^2.58.0",
     "html5-qrcode": "^2.3.8",
     "motion": "^14.3.0",
-    "next": "15.5.4",
+    "next": "^15.5.29",
     "qrcode": "^1.5.4",
     "react": "19.1.0",
     "react-dom": "19.1.0",
@@ -30,7 +30,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "15.5.4",
+    "eslint-config-next": "^15.5.29",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
