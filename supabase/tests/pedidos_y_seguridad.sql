@@ -279,13 +279,13 @@ insert into public.sellers (profile_id, nombre_publico, codigo) values
   ('a0000000-0000-0000-0000-00000000000d', 'Pendiente', 'pendiente');
 
 select pruebas.igual('el admin ve todos los pedidos',
-  pruebas.cuenta('select * from public.orders', 'authenticated', 'a0000000-0000-0000-0000-00000000000a'),
+  pruebas.cuenta('select id from public.orders', 'authenticated', 'a0000000-0000-0000-0000-00000000000a'),
   (select count(*) from public.orders));
 select pruebas.igual('el RRPP ve solo las ventas que lo eligieron',
-  pruebas.cuenta('select * from public.orders', 'authenticated', 'a0000000-0000-0000-0000-00000000000b'),
+  pruebas.cuenta('select id from public.orders', 'authenticated', 'a0000000-0000-0000-0000-00000000000b'),
   1::bigint);
 select pruebas.igual('otro RRPP no ve las ventas de Lucas',
-  pruebas.cuenta('select * from public.orders', 'authenticated', 'a0000000-0000-0000-0000-00000000000c'),
+  pruebas.cuenta('select id from public.orders', 'authenticated', 'a0000000-0000-0000-0000-00000000000c'),
   0::bigint);
 select pruebas.igual('un RRPP no aprobado no ve nada',
   pruebas.cuenta('select * from public.events', 'authenticated', 'a0000000-0000-0000-0000-00000000000d'),

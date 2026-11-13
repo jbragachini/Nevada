@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/sesion";
 import Link from "next/link";
 import { PagarComision, RegistrarRendicion } from "@/components/admin/SaldoForms";
 import { Card, Etiqueta, Titulo, Vacio } from "@/components/admin/ui";
@@ -5,6 +6,7 @@ import { formatARS, formatFechaHora } from "@/lib/format";
 import { getMovimientos, getSaldos } from "@/lib/admin";
 
 export default async function ComisionesPage() {
+  await requireAdmin();
   const [saldos, movimientos] = await Promise.all([getSaldos(), getMovimientos()]);
 
   return (

@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { BUCKET_COMPROBANTES, MAX_COMPROBANTE, tipoDeComprobante } from "@/lib/comprobante";
 import { hashDelToken, TOKEN_RE } from "@/lib/pedido-token";
@@ -52,9 +52,10 @@ export async function POST(req: Request) {
   }
 
   const sha = createHash("sha256").update(bytes).digest("hex");
-  const path = `${pedido.id}/${sha.slice(0, 16)}.${tipo.ext}`;
+  // Un nombre distinto por subida: dos envíos a la vez no se pisan ni se borran entre sí.
+  const path = `${pedido.id}/${randomUUID()}.${tipo.ext}`;
   const subir = () =>
-    supabase.storage.from(BUCKET_COMPROBANTES).upload(path, bytes, { contentType: tipo.tipo, upsert: true });
+    supabase.storage.from(BUCKET_COMPROBANTES).upload(path, bytes, { contentType: tipo.tipo, upsert: false });
 
   let { error: errSubida } = await subir();
   if (errSubida && /not.?found/i.test(errSubida.message)) {

@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/sesion";
 import Link from "next/link";
 import { borrarInvitadoAdmin, cambiarInvitadoAdmin } from "@/app/actions/admin";
 import { Accion } from "@/components/admin/Accion";
@@ -7,6 +8,7 @@ import { Card, Etiqueta, Titulo, Vacio } from "@/components/admin/ui";
 import { getEventoActual, getEventos, getInvitadosEvento } from "@/lib/admin";
 
 export default async function InvitadosAdminPage() {
+  await requireAdmin();
   const eventos = await getEventos();
   const actual = await getEventoActual(eventos);
   const lista = actual && actual.acceso === "lista" ? await getInvitadosEvento(actual.id) : [];

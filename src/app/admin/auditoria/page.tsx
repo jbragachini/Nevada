@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/sesion";
 import { Card, Titulo, Vacio } from "@/components/admin/ui";
 import { formatFechaHora } from "@/lib/format";
 import { getAuditoria } from "@/lib/admin";
@@ -24,6 +25,7 @@ const ACCIONES: Record<string, string> = {
 };
 
 export default async function AuditoriaPage() {
+  await requireAdmin();
   const filas = await getAuditoria();
   return (
     <>

@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/sesion";
 import Link from "next/link";
 import { editarRrpp } from "@/app/actions/admin";
 import { Accion } from "@/components/admin/Accion";
@@ -7,6 +8,7 @@ import { formatFechaHora } from "@/lib/format";
 import { getAccesosPendientes, getRrpps } from "@/lib/admin";
 
 export default async function RrppPage() {
+  await requireAdmin();
   const [accesos, rrpps] = await Promise.all([getAccesosPendientes(), getRrpps()]);
 
   return (

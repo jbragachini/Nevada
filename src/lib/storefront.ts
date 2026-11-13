@@ -9,6 +9,7 @@ export type StorefrontEvent = {
   lugar: string;
   direccion: string | null;
   ciudad: string;
+  descripcion: string | null;
   ventasAbiertas: boolean;
   /** "lista": solo compra quien está en la lista de invitados. "clave": quien sabe la palabra clave. */
   acceso: "publico" | "lista" | "clave";
@@ -51,6 +52,7 @@ const PREVIEW: { event: StorefrontEvent; tickets: StorefrontTicket[]; rrpps: Sto
     lugar: "Lugar a confirmar",
     direccion: null,
     ciudad: "Oncativo, Córdoba",
+    descripcion: null,
     ventasAbiertas: true,
     acceso: "publico",
     mostrarRrpp: true,
@@ -88,7 +90,7 @@ export async function getStorefront(): Promise<Storefront> {
 
   const { data: ev, error: evErr } = await supabase
     .from("storefront_event")
-    .select("id,nombre,subtitulo,fecha_inicio,lugar,direccion,ciudad,ventas_abiertas,acceso,mostrar_rrpp,portada")
+    .select("id,nombre,subtitulo,fecha_inicio,lugar,direccion,ciudad,descripcion,ventas_abiertas,acceso,mostrar_rrpp,portada")
     .maybeSingle();
 
   if (evErr) return { mode: "error", message: evErr.message };
@@ -119,6 +121,7 @@ export async function getStorefront(): Promise<Storefront> {
       lugar: ev.lugar,
       direccion: ev.direccion,
       ciudad: ev.ciudad,
+      descripcion: ev.descripcion,
       ventasAbiertas: ev.ventas_abiertas,
       acceso: ev.acceso === "lista" || ev.acceso === "clave" ? ev.acceso : "publico",
       mostrarRrpp: ev.mostrar_rrpp,

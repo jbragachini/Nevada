@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/sesion";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { estadoEvento } from "@/app/actions/admin";
@@ -9,6 +10,7 @@ import { aInputFecha } from "@/lib/format";
 import { getEventos, getTipos } from "@/lib/admin";
 
 export default async function EditarEventoPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireAdmin();
   const { id } = await params;
   const evento = (await getEventos()).find((e) => e.id === id);
   if (!evento) notFound();

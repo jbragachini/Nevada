@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/sesion";
 import Link from "next/link";
 import { duplicarEvento, eliminarEvento, estadoEvento } from "@/app/actions/admin";
 import { Accion } from "@/components/admin/Accion";
@@ -6,6 +7,7 @@ import { formatEventDate } from "@/lib/format";
 import { getEventos } from "@/lib/admin";
 
 export default async function EventosPage() {
+  await requireAdmin();
   const eventos = await getEventos();
 
   return (

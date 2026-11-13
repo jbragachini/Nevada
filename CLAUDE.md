@@ -43,7 +43,7 @@ Este archivo es el traspaso del proyecto para Claude Code. Leelo completo antes 
   - los tipos de entrada con su precio y un selector de cantidad;
   - sus datos: nombre, apellido, mail y WhatsApp opcional;
   - **«¿Quién te vendió? (opcional)»**, una lista de RRPP con la opción «Nadie, compro directo»;
-  - el total y el botón **«Pagar con Mercado Pago»** (Checkout Pro).
+  - el total y el botón **«Pagar»** (transferencia con comprobante; Mercado Pago es opcional y aparece en el pedido si está configurado).
 - No hay sección «Cómo se paga», ni cuenta regresiva, ni «Mis pedidos».
 - Cada RRPP tiene un link `/?rrpp=codigo` que lo deja preseleccionado.
 - **Flujo de pago:**
@@ -168,11 +168,19 @@ Next.js 15 (App Router) · TypeScript · Tailwind 4 · Supabase (Postgres + Auth
   - `src/app/api/comprobante/route.ts`: recibe el archivo, controla tipo real (bytes) y 5 MB, lo guarda en el Storage privado `comprobantes` (se crea solo) y llama a la base. `PagoTransferencia.tsx`: monto, alias con «Copiar», subir comprobante (las fotos se achican en el celular) y «Pagado» (apagado hasta subirlo). En «Por aprobar» el admin ve el comprobante con un link firmado de 10 minutos.
   - Estilo de la portada A en todo: fondo `.fondo-noche` (fotos nuevas de la A), `.tema-noche` (vidrio oscuro; los colores «sobre blanco» se remapean), botón de vidrio `.gl` + `FlechaGl`, títulos en Montserrat mayúscula. «¿Quién te vendió?» arranca en blanco; la palabra clave de la portada baja directo a las entradas.
 
-**Siguiente, en orden** (ver la tabla de etapas en ARQUITECTURA):
-1. **Poner online gratis:** Supabase (migraciones 0001–0011) y Vercel con dirección `*.vercel.app`; el dominio se compra después (NIC, `.com.ar`).
-2. **Etapa 6:** entradas por mail (QR + PDF con el diseño del prototipo, Resend).
+- **Auditoría y cierre (migraciones 0012 y 0013):**
+  - **Mails** (`src/lib/mail.ts`, Resend, apagados sin `RESEND_API_KEY`): pedido recibido con el link, entradas (un mail por persona con sus QR adentro), pedido rechazado y «Reenviar entradas» en Admin → Ventas. Salen con `after()` y quedan en `email_log`. El link se recalcula con la clave de idempotencia del pedido.
+  - **Mercado Pago opcional** (`src/lib/mercadopago.ts`, `/api/mercadopago/webhook`, `PagoMercadoPago.tsx`): aparece en el pedido solo con `MP_ACCESS_TOKEN` + `MP_WEBHOOK_SECRET`. El aviso se verifica por firma (y antigüedad), se consulta el pago en la API y `registrar_pago_mp()` deja el pedido `pagado`; el admin aprueba igual. Probado contra un Mercado Pago simulado, **no** contra una cuenta real.
+  - **Sitio público:** contacto y redes por variables (`src/lib/contacto.ts`), descripción y dirección del evento, vista previa al compartir (Open Graph), `robots.txt`, páginas 404 y de error, «Ver mi pedido» recordado en el dispositivo (`PedidoGuardado.tsx`).
+  - **Admin:** exportación de ventas a CSV (`/admin/ventas/exportar`, neutraliza fórmulas); cada página llama a `requireAdmin()`.
+  - **Seguridad (0013):** `authenticated` ya no lee `idempotency_key`, `token_hash` ni `ip_hash` de `orders`; tope de entradas en espera por mail (20) y por conexión (40); límite de intentos de ingreso y de pedidos de acceso (`intento_permitido`); los RRPP solo cargan invitados en eventos con lista y solo editan nombre, tope y activo; bucket `comprobantes` privado por migración; comprobantes con nombre único por subida; cabeceras de seguridad y CSP en `next.config.ts`.
+  - Pruebas: 220+ controles de base (`scripts/probar-base.sh`) y pruebas con navegador de todos los recorridos.
+
+**Siguiente, en orden:**
+1. **Publicar:** pasos en `docs/PUBLICAR.md` (Supabase + Vercel; las cuentas las crea Joaquín).
+2. Probar Mercado Pago y Resend con cuentas reales cuando existan.
 3. **Pendientes acordados:** leer el número de operación de los comprobantes (OCR gratis) y rechazar los repetidos; nombre de cada persona en la compra (opcional) y estimación chicas/chicos por nombre (solo totales); código a mano por nombre (`martina1`, falta confirmar el formato).
-4. **Etapa 8:** pruebas de permisos, revisión de RLS y despliegue. Mercado Pago con comisión queda descartado por ahora.
+4. **Pendientes de seguridad menores:** tope de entradas en efectivo por RRPP; que el RRPP no lea mail y WhatsApp de compradores web; CSP con nonces; confirmar el mail de los RRPP nuevos.
 
 Trabajá por etapas, mostrando el avance, y cada etapa en commits claros.
 

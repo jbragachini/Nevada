@@ -1,4 +1,5 @@
 import { Mountain } from "@/components/NevadaLogo";
+import { Contacto } from "@/components/sitio/Contacto";
 import { Snowfall } from "@/components/Snowfall";
 
 /**
@@ -48,6 +49,7 @@ export function TicketShell({
           <Mountain className="h-4 w-auto text-ice/70" />
           <p>Nevada Producciones · Oncativo, Córdoba</p>
           {footer}
+          <Contacto />
         </footer>
       </section>
     </main>

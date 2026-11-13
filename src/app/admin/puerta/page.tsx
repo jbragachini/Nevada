@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/sesion";
 import { Escaner } from "@/components/admin/Escaner";
 import { EventoSelector } from "@/components/admin/EventoSelector";
 import { Card, Titulo, Vacio } from "@/components/admin/ui";
@@ -6,6 +7,7 @@ import { qrConfigurado } from "@/lib/qr";
 import { getServerSupabase } from "@/lib/supabase/server";
 
 export default async function PuertaPage() {
+  await requireAdmin();
   const eventos = await getEventos();
   const actual = await getEventoActual(eventos);
   let resumen = { ingresos: 0, faltan: 0 };

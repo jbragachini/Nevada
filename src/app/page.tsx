@@ -7,12 +7,32 @@ import { BotonComprar } from "@/components/portada/BotonComprar";
 import { Portada } from "@/components/portada/Portada";
 import { TicketForm } from "@/components/TicketForm";
 import { TicketShell } from "@/components/TicketShell";
+import type { Metadata } from "next";
+import { PedidoGuardado } from "@/components/sitio/PedidoGuardado";
 import { getCheckout } from "@/lib/checkout";
-import { formatDiaPortada } from "@/lib/format";
+import { mailConfigurado } from "@/lib/contacto";
+import { formatDiaPortada, formatEventDate } from "@/lib/format";
 import { getStorefront, type Portada as VariantePortada } from "@/lib/storefront";
 
 // Precios, cupos y estado de ventas cambian desde el admin: no cachear.
 export const dynamic = "force-dynamic";
+
+/** Título y vista previa al compartir el link (WhatsApp, Instagram): salen del evento publicado. */
+export async function generateMetadata(): Promise<Metadata> {
+  const sf = await getStorefront();
+  if (sf.mode !== "live") return {};
+  const f = formatEventDate(sf.event.fechaInicio);
+  const title = `${sf.event.nombre} · Entradas`;
+  const description = `${f.dia}, ${f.hora} h · ${sf.event.lugar}, ${sf.event.ciudad}. Comprá tus entradas online — Nevada Producciones.`;
+  // Next no mezcla openGraph con el del layout: la imagen y el sitio se repiten acá.
+  const imagen = { url: "/portadas/a-escritorio.jpg", width: 1920, height: 1200, alt: sf.event.nombre };
+  return {
+    title,
+    description,
+    openGraph: { type: "website", locale: "es_AR", siteName: "Nevada Producciones", title, description, images: [imagen] },
+    twitter: { card: "summary_large_image", title, description, images: [imagen.url] },
+  };
+}
 
 export default async function Home({
   searchParams,
@@ -70,8 +90,15 @@ export default async function Home({
             </>
           )
         }
-        footer={<p>Las entradas se envían por correo con un QR único por persona.</p>}
+        footer={
+          <p>
+            {mailConfigurado()
+              ? "Cuando aprobamos el pago te mandamos las entradas por mail, con un QR único por persona."
+              : "Cuando aprobamos el pago, tus entradas aparecen en el link de tu pedido, con un QR único por persona."}
+          </p>
+        }
       >
+        <PedidoGuardado />
         <Body sf={sf} rrppCode={rrpp} />
       </TicketShell>
     </ClaveCompartida>
@@ -88,7 +115,7 @@ function Body({
   if (sf.mode === "error") {
     return (
       <Notice title="NO PUDIMOS CARGAR EL EVENTO">
-        Probá de nuevo en unos minutos. Si el problema sigue, escribinos por Instagram.
+        Probá de nuevo en unos minutos.
       </Notice>
     );
   }

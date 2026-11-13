@@ -1,6 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+import { mailEntradas } from "@/lib/mail";
+import { getAdminSupabase } from "@/lib/supabase/admin";
 import { z } from "zod";
 import { hashDelToken, tokenDelPedido, tokenSecretConfigured } from "@/lib/pedido-token";
 import { codigoCorto, contenidoQr, qrConfigurado, qrSvg } from "@/lib/qr";
@@ -76,6 +79,13 @@ export async function cargarVenta(
   if (error) return traducirVenta(error.message, error.details);
 
   const fila = (data as { numero: string; status: string; total: number }[])[0];
+  if (fila.status === "aprobado") {
+    // Efectivo: las entradas ya salieron; cada persona recibe la suya por mail.
+    after(async () => {
+      const { data: o } = (await getAdminSupabase()?.from("orders").select("id").eq("numero", fila.numero).maybeSingle()) ?? {};
+      if (o?.id) await mailEntradas(o.id);
+    });
+  }
   revalidatePath("/rrpp");
   return { ok: true, numero: fila.numero, status: fila.status, total: fila.total };
 }

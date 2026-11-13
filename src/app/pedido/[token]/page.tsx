@@ -4,12 +4,15 @@ import { notFound } from "next/navigation";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { NevadaLogo } from "@/components/NevadaLogo";
 import { TicketShell } from "@/components/TicketShell";
+import { PagoMercadoPago } from "@/components/PagoMercadoPago";
 import { PagoTransferencia } from "@/components/PagoTransferencia";
+import { mpConfigurado } from "@/lib/mercadopago";
 import { getCuentaPago } from "@/lib/checkout";
 import { formatARS, formatEventDate, formatHora } from "@/lib/format";
 import { getPedido, type EstadoPedido, type Pedido } from "@/lib/pedido";
 import { codigoCorto, contenidoQr, qrConfigurado, qrSvg } from "@/lib/qr";
 import { FlechaGl } from "@/components/FlechaGl";
+import { RecordarPedido } from "@/components/sitio/PedidoGuardado";
 
 export const dynamic = "force-dynamic";
 
@@ -61,6 +64,11 @@ export default async function PedidoPage({ params }: { params: Promise<{ token: 
       footer={<p>Guardá este link: es privado y te deja ver tu pedido cuando quieras.</p>}
     >
       {enCurso && <AutoRefresh seconds={20} />}
+      <RecordarPedido
+        token={token}
+        numero={pedido.numero}
+        olvidar={pedido.status === "rechazado" || pedido.status === "cancelado"}
+      />
 
       <div className="flex flex-col gap-7">
         <header className="flex flex-col items-center gap-3 text-center">
@@ -83,8 +91,9 @@ export default async function PedidoPage({ params }: { params: Promise<{ token: 
             vencido={pedido.status === "vencido"}
           />
         )}
+        {pagar && pedido.status === "pendiente_pago" && mpConfigurado() && <PagoMercadoPago token={token} />}
 
-        {estado.paso > 0 && <Pasos actual={estado.paso} />}
+        {estado.paso > 0 && <Pasos actual={estado.paso} mp={pedido.metodo === "mercadopago"} />}
 
         <section aria-labelledby="resumen" className="flex flex-col gap-3">
           <h2 id="resumen" className="text-xs font-bold uppercase tracking-[0.18em] text-muted">
@@ -197,7 +206,7 @@ function Explicacion({ pedido }: { pedido: Pedido }) {
       return <>Tus entradas están abajo, una por persona. Cada uno muestra su QR en la puerta.</>;
     case "rechazado":
     case "cancelado":
-      return <>No pudimos aprobar este pedido. Escribinos por Instagram con tu número de pedido y lo vemos.</>;
+      return <>No pudimos aprobar este pedido. Escribinos con tu número de pedido y lo vemos.</>;
     case "vencido":
       return (
         <>
@@ -208,10 +217,11 @@ function Explicacion({ pedido }: { pedido: Pedido }) {
   }
 }
 
-function Pasos({ actual }: { actual: number }) {
+function Pasos({ actual, mp }: { actual: number; mp: boolean }) {
   return (
     <ol className="flex flex-col" aria-label="Estado del pedido">
-      {PASOS.map((nombre, i) => {
+      {PASOS.map((paso, i) => {
+        const nombre = mp && i === 1 ? "Pago recibido" : paso;
         const hecho = i < actual;
         const ahora = i === actual;
         const ultimo = i === PASOS.length - 1;

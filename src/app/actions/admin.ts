@@ -3,9 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
+import { mailConfigurado } from "@/lib/contacto";
+import { mailEntradas, mailPedidoRechazado } from "@/lib/mail";
 import { z } from "zod";
 import { COOKIE_EVENTO } from "@/lib/admin";
-import { getSesion } from "@/lib/sesion";
+import { getNivel, getSesion } from "@/lib/sesion";
 import { getServerSupabase } from "@/lib/supabase/server";
 
 /**
@@ -183,13 +186,31 @@ export async function aprobarPedido(id: string): Promise<Respuesta> {
   const r = await llamar("admin_aprobar_pedido", { p_id: id });
   if (r.error) return { ok: false, error: r.error };
   const n = Number(r.data);
-  return { ok: true, mensaje: `Aprobado: ${n} entrada${n === 1 ? "" : "s"} con QR.` };
+  after(() => mailEntradas(id));
+  return {
+    ok: true,
+    mensaje: `Aprobado: ${n} entrada${n === 1 ? "" : "s"} con QR.${mailConfigurado() ? " Se mandan por mail." : ""}`,
+  };
 }
 
 export async function rechazarPedido(id: string, motivo: string): Promise<Respuesta> {
   if (!uuid.safeParse(id).success) return { ok: false, error: GENERICO };
   const r = await llamar("admin_rechazar_pedido", { p_id: id, p_motivo: motivo.slice(0, 500) });
-  return r.error ? { ok: false, error: r.error } : { ok: true, mensaje: "Rechazado." };
+  if (r.error) return { ok: false, error: r.error };
+  after(() => mailPedidoRechazado(id));
+  return { ok: true, mensaje: "Rechazado." };
+}
+
+/** Vuelve a mandar las entradas de un pedido aprobado (por si el comprador no encuentra el mail). */
+export async function reenviarEntradas(id: string): Promise<Respuesta> {
+  // Usa la clave del servidor: acá se exige también la doble verificación (la base no interviene).
+  if (!uuid.safeParse(id).success || !(await adminDb()) || (await getNivel()).actual !== "aal2") {
+    return { ok: false, error: GENERICO };
+  }
+  if (!mailConfigurado()) return { ok: false, error: "Los mails todavía no están configurados." };
+  const r = await mailEntradas(id, true);
+  if (r.enviados === 0) return { ok: false, error: "No se pudo enviar. Revisá que el pedido esté aprobado." };
+  return { ok: true, mensaje: `Entradas reenviadas (${r.enviados} mail${r.enviados === 1 ? "" : "s"}).` };
 }
 
 export async function anularEntrada(id: string, motivo: string): Promise<Respuesta> {

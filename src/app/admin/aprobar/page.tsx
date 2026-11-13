@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/sesion";
 import { aprobarPedido, rechazarPedido } from "@/app/actions/admin";
 import { Accion } from "@/components/admin/Accion";
 import { Card, Titulo, Vacio } from "@/components/admin/ui";
@@ -21,6 +22,7 @@ function medio(p: Pedido): string {
 }
 
 export default async function PorAprobarPage() {
+  await requireAdmin();
   const pedidos = await getPorAprobar();
   const urls = await urlsDeComprobantes(pedidos.flatMap((p) => (p.comprobante ? [p.comprobante.path] : [])));
 

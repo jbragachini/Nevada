@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/sesion";
 import { anularEntrada } from "@/app/actions/admin";
 import { Accion } from "@/components/admin/Accion";
 import { EventoSelector } from "@/components/admin/EventoSelector";
@@ -7,6 +8,7 @@ import { formatFechaHora } from "@/lib/format";
 import { getEntradas, getEventoActual, getEventos } from "@/lib/admin";
 
 export default async function EntradasPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+  await requireAdmin();
   const { q = "" } = await searchParams;
   const eventos = await getEventos();
   const actual = await getEventoActual(eventos);

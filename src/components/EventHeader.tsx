@@ -4,7 +4,15 @@ import { formatEventDate } from "@/lib/format";
 export function EventHeader({
   event,
 }: {
-  event: { nombre: string; subtitulo: string | null; fechaInicio: string; lugar: string; ciudad: string };
+  event: {
+    nombre: string;
+    subtitulo: string | null;
+    fechaInicio: string;
+    lugar: string;
+    ciudad: string;
+    direccion?: string | null;
+    descripcion?: string | null;
+  };
 }) {
   const f = formatEventDate(event.fechaInicio);
   return (
@@ -24,9 +32,12 @@ export function EventHeader({
         <div className="bg-night/60 px-4 py-3">
           <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-ice">Lugar</p>
           <p className="mt-1 text-sm font-semibold text-white">{event.lugar}</p>
-          <p className="text-xs text-frost/80">{event.ciudad}</p>
+          <p className="text-xs text-frost/80">{[event.direccion, event.ciudad].filter(Boolean).join(" · ")}</p>
         </div>
       </div>
+      {event.descripcion && (
+        <p className="mt-5 whitespace-pre-line text-left text-sm leading-relaxed text-frost/90 text-pretty">{event.descripcion}</p>
+      )}
     </div>
   );
 }

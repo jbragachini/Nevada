@@ -2,6 +2,10 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
+import { mailPedidoRecibido } from "@/lib/mail";
+import { crearPreferencia, mpConfigurado } from "@/lib/mercadopago";
+import { getPedido } from "@/lib/pedido";
 import { getCheckout } from "@/lib/checkout";
 import { hashDeIp, hashDelToken, tokenDelPedido, tokenSecretConfigured } from "@/lib/pedido-token";
 import {
@@ -57,6 +61,8 @@ export async function crearPedido(input: unknown): Promise<PedidoResult> {
 
   if (error) return traducir(error.message, error.details);
 
+  // El mail con el link sale después de responder: si falla, la compra sigue igual.
+  after(() => mailPedidoRecibido(hashDelToken(token)));
   redirect(`/pedido/${token}`);
 }
 
@@ -182,4 +188,28 @@ function traducir(message: string, detail: string | null): PedidoResult {
       console.error("crear_pedido_web:", message);
       return { ok: false, error: GENERICO };
   }
+}
+
+/**
+ * Pago con Mercado Pago (si está configurado): arma la preferencia del pedido y devuelve a dónde ir.
+ * El pedido se da por pagado solo cuando Mercado Pago avisa al servidor, nunca por volver a la página.
+ */
+export async function pagarConMercadoPago(token: string): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  const fallo = { ok: false as const, error: "No pudimos abrir Mercado Pago. Probá de nuevo o pagá por transferencia." };
+  if (!mpConfigurado()) return fallo;
+  const pedido = await getPedido(token);
+  if (!pedido) return fallo;
+  if (pedido.status !== "pendiente_pago") {
+    return { ok: false, error: "Este pedido ya no está esperando el pago. Recargá la página." };
+  }
+  const sitio = (process.env.NEXT_PUBLIC_SITE_URL || "").replace(/\/+$/, "");
+  const url = await crearPreferencia({
+    numero: pedido.numero,
+    total: pedido.total,
+    evento: pedido.evento.nombre,
+    email: pedido.compradorEmail,
+    venceEn: pedido.venceEn,
+    linkPedido: `${sitio}/pedido/${token}`,
+  });
+  return url ? { ok: true, url } : fallo;
 }

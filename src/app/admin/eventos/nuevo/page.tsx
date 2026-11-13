@@ -1,8 +1,10 @@
+import { requireAdmin } from "@/lib/sesion";
 import Link from "next/link";
 import { EventoForm } from "@/components/admin/EventoForm";
 import { Card, Titulo } from "@/components/admin/ui";
 
-export default function NuevoEventoPage() {
+export default async function NuevoEventoPage() {
+  await requireAdmin();
   return (
     <>
       <Titulo extra={<Link href="/admin/eventos" className="text-sm text-ice underline underline-offset-4">Volver a eventos</Link>}>

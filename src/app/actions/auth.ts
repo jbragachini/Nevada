@@ -1,7 +1,10 @@
 "use server";
 
+import { createHash } from "node:crypto";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { hashDeIp, tokenSecretConfigured } from "@/lib/pedido-token";
 import { inicioDe } from "@/lib/sesion";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import { getServerSupabase } from "@/lib/supabase/server";
@@ -24,7 +27,18 @@ export async function ingresar(input: unknown): Promise<AuthResult> {
   const parsed = ingresoSchema.safeParse(input);
   if (!parsed.success) return { ok: false, fieldErrors: errores(parsed.error) };
 
-  let email = parsed.data.usuario.trim().toLowerCase();
+  // Límite de intentos por usuario y por conexión (los cuenta la base; solo se guardan hashes).
+  const quien = parsed.data.usuario.trim().toLowerCase();
+  const ip = await ipHash();
+  const [porUsuario, porIp] = await Promise.all([
+    admin.rpc("intento_permitido", { p_clave: `login:u:${createHash("sha256").update(quien).digest("hex")}`, p_max: 10, p_minutos: 15 }),
+    ip ? admin.rpc("intento_permitido", { p_clave: `login:ip:${ip}`, p_max: 40, p_minutos: 15 }) : { data: true },
+  ]);
+  if (porUsuario.data === false || porIp.data === false) {
+    return { ok: false, error: "Demasiados intentos. Esperá unos minutos y volvé a probar." };
+  }
+
+  let email = quien;
   if (!email.includes("@")) {
     const { data } = await admin.rpc("email_de_usuario", { p_usuario: email });
     email = typeof data === "string" ? data : "";
@@ -142,13 +156,21 @@ export async function pedirAcceso(input: unknown): Promise<AuthResult> {
   if (!parsed.success) return { ok: false, fieldErrors: errores(parsed.error) };
   const d = parsed.data;
 
-  // Freno anti abuso: si llegan muchos pedidos de acceso juntos, se pausa unos minutos.
+  // Freno por conexión: pocos pedidos de acceso por hora desde el mismo lugar.
+  const ip = await ipHash();
+  if (ip) {
+    const { data: puede } = await admin.rpc("intento_permitido", { p_clave: `acceso:ip:${ip}`, p_max: 4, p_minutos: 60 });
+    if (puede === false) {
+      return { ok: false, error: "Ya pediste acceso varias veces. Probá de nuevo más tarde." };
+    }
+  }
+  // Freno general: si llegan muchos pedidos de acceso juntos, se pausa unos minutos.
   const { count: recientes } = await admin
     .from("access_requests")
     .select("id", { count: "exact", head: true })
     .eq("estado", "pendiente")
     .gte("creado_en", new Date(Date.now() - 10 * 60_000).toISOString());
-  if ((recientes ?? 0) >= 10) {
+  if ((recientes ?? 0) >= 30) {
     return { ok: false, error: "Hay muchos pedidos de acceso en este momento. Probá de nuevo en unos minutos." };
   }
 
@@ -204,4 +226,11 @@ function errores(error: z.ZodError): Record<string, string> {
   const out: Record<string, string> = {};
   for (const issue of error.issues) out[String(issue.path[0])] ??= issue.message;
   return out;
+}
+
+/** Hash de la IP de quien llama (nunca la IP), para los límites de intentos. */
+async function ipHash(): Promise<string | null> {
+  const h = await headers();
+  const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip");
+  return ip && tokenSecretConfigured() ? hashDeIp(ip) : null;
 }

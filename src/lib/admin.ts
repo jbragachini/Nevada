@@ -1,4 +1,5 @@
 import "server-only";
+import { requireAdmin } from "@/lib/sesion";
 import { cookies } from "next/headers";
 import { BUCKET_COMPROBANTES } from "@/lib/comprobante";
 import { getAdminSupabase } from "@/lib/supabase/admin";
@@ -246,8 +247,8 @@ export type FiltroVentas = {
   q: string;
 };
 
-export async function getVentas(f: FiltroVentas, eventId: string | null): Promise<Pedido[]> {
-  let query = (await db()).from("orders").select(PEDIDO_COLS).order("creado_en", { ascending: false }).limit(500);
+export async function getVentas(f: FiltroVentas, eventId: string | null, limite = 500): Promise<Pedido[]> {
+  let query = (await db()).from("orders").select(PEDIDO_COLS).order("creado_en", { ascending: false }).limit(limite);
   if (f.alcance === "evento" && eventId) query = query.eq("event_id", eventId);
   if (f.vendedor === "directo") query = query.is("seller_id", null);
   else if (f.vendedor !== "todos") query = query.eq("seller_id", f.vendedor);
@@ -493,6 +494,7 @@ function resumenCambio(d: Record<string, unknown> | null): string {
  * solo el servidor, ya con el admin verificado, puede firmarlos.
  */
 export async function urlsDeComprobantes(paths: string[]): Promise<Record<string, string>> {
+  await requireAdmin();
   const supabase = getAdminSupabase();
   if (!supabase || paths.length === 0) return {};
   const { data, error } = await supabase.storage.from(BUCKET_COMPROBANTES).createSignedUrls(paths, 600);

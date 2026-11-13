@@ -1,3 +1,7 @@
+import { requireAdmin } from "@/lib/sesion";
+import { reenviarEntradas } from "@/app/actions/admin";
+import { Accion } from "@/components/admin/Accion";
+import { mailConfigurado } from "@/lib/contacto";
 import { EventoSelector } from "@/components/admin/EventoSelector";
 import { Card, Stat, Titulo, Vacio, boton, campo } from "@/components/admin/ui";
 import { EstadoPill } from "@/components/EstadoPill";
@@ -17,6 +21,7 @@ export default async function VentasPage({
 }: {
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
+  await requireAdmin();
   const sp = await searchParams;
   const filtro: FiltroVentas = {
     vendedor: sp.vendedor ?? "todos",
@@ -70,6 +75,15 @@ export default async function VentasPage({
             Filtrar
           </button>
         </form>
+        <p className="mt-3 text-[12.5px] text-muted">
+          <a
+            href={`/admin/ventas/exportar?${new URLSearchParams(filtro).toString()}`}
+            className="font-semibold text-blue underline underline-offset-2"
+            download
+          >
+            Descargar estas ventas (Excel / CSV)
+          </a>
+        </p>
       </Card>
 
       <dl className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -99,6 +113,11 @@ export default async function VentasPage({
                 </div>
                 <span className="text-sm font-bold tabular-nums">{formatARS(v.total)}</span>
                 <EstadoPill status={v.status} metodo={v.metodo} origen={v.origen} />
+                {v.status === "aprobado" && mailConfigurado() && (
+                  <Accion accion={reenviarEntradas.bind(null, v.id)} confirmar={`¿Reenviar las entradas de ${v.numero} por mail?`} pendiente="Enviando…">
+                    Reenviar entradas
+                  </Accion>
+                )}
               </li>
             ))}
           </ul>

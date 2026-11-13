@@ -17,13 +17,18 @@ Traspaso para Claude Code en [`CLAUDE.md`](CLAUDE.md); demo de referencia en `do
 | 4. Admin y comisiones | ✅ Terminada (panel `/admin` con doble verificación: resumen, eventos y tipos de entrada, acceso público / lista / palabra clave, por aprobar, ventas por vendedor, comisiones y rendiciones, RRPP y accesos, invitados, entradas y QR, auditoría) |
 | Portada | ✅ Dos portadas a pantalla completa (A: camino a la montaña, C: contraluz azul), para celular y escritorio; el admin elige cuál se ve en cada evento |
 | 7. Puerta | ✅ Terminada (`/admin/puerta`: cámara del celular, resultado grande en color, código corto a mano, contador; validación atómica en la base) |
-| 5, 6 y 8 | ⏳ Pendientes (Mercado Pago, mails con las entradas, revisión final y publicación) |
-
-**Medio de pago:** Mercado Pago (Checkout Pro). El comprador paga el total en Mercado Pago; el pedido queda *pagado* solo cuando Mercado Pago lo confirma al servidor, y las entradas con QR se liberan cuando el administrador aprueba el pedido. Mercado Pago cobra comisión por cada venta según el plazo de acreditación elegido.
+| 5. Mercado Pago | ✅ Hecho como medio **opcional** (Checkout Pro + aviso firmado): aparece solo si se cargan sus credenciales. Probado contra un Mercado Pago simulado; falta probarlo con una cuenta real |
+| 6. Mails | ✅ Hecho (Resend): pedido recibido con el link, entradas con sus QR, pedido rechazado y reenvío desde el admin. Se activa al cargar la clave de Resend; probado contra un Resend simulado |
+| Sitio público | ✅ Contacto y redes, detalles del evento, vista previa al compartir, páginas de error, exportación de ventas y cabeceras de seguridad |
+| 8. Publicación | ⏳ Falta crear las cuentas y publicar: pasos en [`docs/PUBLICAR.md`](docs/PUBLICAR.md) |
 
 **Pago:** sin comisión, por **transferencia común** al alias de Nevada (`nevadaoncativo`). El comprador toca **Pagar**, ve el monto exacto y el alias, transfiere desde su banco o billetera, **sube el comprobante** (foto, captura o PDF) y toca **Pagado**. El pedido queda en **Por aprobar**: el admin mira el comprobante, confirma en su app que la plata entró y aprueba; ahí aparecen las entradas con QR. El mismo comprobante no se acepta en dos pedidos. Las entradas quedan reservadas 60 minutos.
 
 Sin Supabase configurado, la página muestra una **vista previa** con datos de ejemplo y un aviso visible.
+
+**Mercado Pago (opcional):** si se cargan `MP_ACCESS_TOKEN` y `MP_WEBHOOK_SECRET`, en el pedido aparece además «Pagar con Mercado Pago». El pedido queda *pagado* solo cuando Mercado Pago avisa al servidor con su firma y el servidor confirma el pago en Mercado Pago; igual espera la aprobación del admin. Mercado Pago cobra comisión por venta.
+
+**Mails (opcional):** con `RESEND_API_KEY` el comprador recibe el link de su pedido, sus entradas con QR al aprobarse y el aviso si se rechaza. Sin la clave, las entradas se ven en el link del pedido (la página lo dice así).
 
 ## Correr en tu computadora
 
@@ -42,7 +47,7 @@ scripts/probar-base.sh       # aplica todas las migraciones en una base descarta
 ## Configurar Supabase (falta hacerlo)
 
 1. Crear un proyecto en [supabase.com](https://supabase.com).
-2. En **SQL Editor**, pegar y ejecutar **`supabase/todo-en-uno.sql`** (tiene todas las migraciones, de `0001_…` a `0011_…`, en orden; se regenera con `scripts/armar-sql-unico.sh`).
+2. En **SQL Editor**, pegar y ejecutar **`supabase/todo-en-uno.sql`** (tiene todas las migraciones, de `0001_…` a `0013_…`, en orden; se regenera con `scripts/armar-sql-unico.sh`).
    Crea el evento *Navidad con Nevada 2026* en la página, con las ventas **cerradas** y dos tipos de entrada (General $15.000 y +25 $20.000, cupos 400 y 200, comisión $0: son valores iniciales, se cambian desde el panel).
 3. En **Project Settings → API**, copiar a `.env.local`: `Project URL` → `NEXT_PUBLIC_SUPABASE_URL`, `anon public` → `NEXT_PUBLIC_SUPABASE_ANON_KEY` y `service_role` → `SUPABASE_SERVICE_ROLE_KEY` (esta última es secreta: solo servidor).
 4. Generar `PEDIDO_TOKEN_SECRET` y `QR_SIGNING_SECRET`, cada uno con `openssl rand -hex 32`. `PAGO_ALIAS` ya viene con `nevadaoncativo`.
