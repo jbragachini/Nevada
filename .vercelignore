@@ -1,0 +1,6 @@
+# Nunca subir a Vercel la configuración local ni lo que se arma en la máquina.
+.env*
+!.env.example
+node_modules
+.next
+docs/demo
