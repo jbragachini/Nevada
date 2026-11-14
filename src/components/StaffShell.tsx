@@ -16,14 +16,14 @@ export function StaffShell({
     <div className="relative min-h-dvh px-4 pb-16">
       <div className="fondo-noche" aria-hidden="true" />
       <header className="sticky top-0 z-20 -mx-4 border-b border-white/10 bg-[#03070f]/75 px-4 py-3 backdrop-blur-md">
-        <div className="mx-auto flex max-w-[1120px] flex-wrap items-center gap-x-5 gap-y-3 lg:flex-nowrap">
+        <div className="mx-auto flex max-w-[1120px] flex-wrap items-center gap-x-5 gap-y-3">
           <div className="flex shrink-0 items-center gap-2.5 text-white">
             <Mountain className="h-auto w-11 text-ice" />
             <span className="display text-[15px] tracking-[0.02em]">NEVADA</span>
           </div>
           <StaffNav links={links} />
           <div className="ml-auto flex shrink-0 items-center gap-3">
-            <span className="hidden text-[13px] text-frost/80 xl:inline">{nombre}</span>
+            <span className="hidden text-[13px] text-frost/80 sm:inline">{nombre}</span>
             <form action={salir}>
               <button
                 type="submit"
